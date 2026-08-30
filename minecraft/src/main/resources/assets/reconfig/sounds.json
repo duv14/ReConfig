@@ -1,0 +1,6 @@
+{
+  "gameplay.eating": { "sounds": ["reconfig:gameplay/eating"] },
+  "gameplay.hits": { "sounds": ["reconfig:gameplay/hits"] },
+  "gameplay.wind_charges": { "sounds": ["reconfig:gameplay/wind_charges"] },
+  "gameplay.mace_hits": { "sounds": ["reconfig:gameplay/mace_hits"] }
+}

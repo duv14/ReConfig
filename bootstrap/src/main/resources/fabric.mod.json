@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "${mod_id}",
+  "version": "${mod_version}",
+  "name": "ReConfig",
+  "description": "ReConfig by duv14. Standalone client with social features and modules, based on OneConfig by Polyfrost and contributors.",
+  "authors": [
+    "duv14",
+    "Polyfrost (original UI source)"
+  ],
+  "contact": {
+    "homepage": "https://duv14.com"
+  },
+  "icon": "reconfig-icon.png",
+  "provides": [
+    "reconfigbootstrap"
+  ],
+  "license": "GPL-3.0-only",
+  "environment": "client",
+  "depends": {
+    "fabricloader": ">=0.12.0",
+    "minecraft": "${mc_version}",
+    "compose-multiplatform": "*",
+    "fabric-language-kotlin": ">=1.13.8+kotlin.2.3.0"
+  }
+}
