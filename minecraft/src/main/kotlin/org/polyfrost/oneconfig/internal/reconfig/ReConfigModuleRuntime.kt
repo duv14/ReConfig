@@ -14,12 +14,21 @@ import org.polyfrost.oneconfig.internal.reconfig.modules.FreeLookController
 import org.polyfrost.oneconfig.internal.reconfig.modules.ModuleHuds
 import org.polyfrost.oneconfig.internal.reconfig.modules.ProjectilePrediction
 import org.polyfrost.oneconfig.internal.reconfig.modules.WaypointRuntime
+import org.polyfrost.oneconfig.internal.reconfig.modules.ActivationState
+import org.polyfrost.oneconfig.internal.reconfig.modules.ZoomController
+import org.polyfrost.oneconfig.internal.ui.shell.ShellState
+import org.polyfrost.oneconfig.internal.mixin.reconfig.ToggleKeyAccessor
 
 /** Edge-triggered dispatcher shared by every ReConfig gameplay module. */
 object ReConfigModuleRuntime {
     private val previouslyDown = HashMap<String, Boolean>()
     private var started = false
     private var lastHitboxRendered: Boolean? = null
+    private val freelookActivation = ActivationState()
+    private val zoomActivation = ActivationState()
+    private var sprintWasEnabled = false
+    private var sneakWasEnabled = false
+    private var previousLevel: Any? = null
 
     @JvmStatic fun start() {
         if (started) return
@@ -29,19 +38,46 @@ object ReConfigModuleRuntime {
     }
 
     private fun tick(mc: Minecraft) {
+        if (previousLevel !== mc.level) {
+            CombatRepository.flashes.clear()
+            previousLevel = mc.level
+            lastHitboxRendered = null
+        }
         ModuleHuds.tick(mc)
+        ShellState.serverTelemetry = if (ModuleAccess.enabled("server_status") && mc.player != null)
+            ModuleHuds.serverText.replace(" | ", "\n") else ""
         WaypointRuntime.tick(mc)
         ProjectilePrediction.tick(mc)
         val window = Platform.compatibility().windowHandle()
         if (window == 0L) return
         val inputBlocked = mc.player == null || mc.screen != null || KeyCapture.moduleId != null || GLFW.glfwGetWindowAttrib(window, GLFW.GLFW_FOCUSED) == GLFW.GLFW_FALSE
         ModuleCatalog.modules.forEach { module ->
-            if (module.id == "freelook" && ModuleAccess.choice("freelook", "mode", "Hold") == "Hold") return@forEach
+            if (module.id == "freelook") return@forEach
             if (risingEdge("${module.id}:toggle", module.key("toggle_key"), window, inputBlocked)) module.toggle()
         }
         val freelook = ModuleCatalog.byId("freelook")!!
-        val holding = !inputBlocked && freelook.key() > 0 && GLFW.glfwGetKey(window, freelook.key()) == GLFW.GLFW_PRESS
-        FreeLookController.update(mc, if (ModuleAccess.choice("freelook", "mode", "Hold") == "Hold") freelook.enabled && holding else freelook.enabled && !inputBlocked)
+        val holding = isDown(freelook.key(), window)
+        FreeLookController.update(mc, freelookActivation.update(freelook.enabled, holding,
+            ModuleAccess.choice("freelook", "mode", "Hold") == "Hold", inputBlocked))
+        val zoom = ModuleCatalog.byId("zoom")!!
+        ZoomController.activate(zoomActivation.update(zoom.enabled, isDown(zoom.key("activation_key"), window),
+            ModuleAccess.choice("zoom", "mode", "Hold") == "Hold", inputBlocked))
+        val sprint = ModuleAccess.enabled("toggle_sprint")
+        val sneak = ModuleAccess.enabled("toggle_sneak")
+        if ((sprint || sprintWasEnabled) && inputBlocked || sprintWasEnabled && !sprint) {
+            (mc.options.keySprint as ToggleKeyAccessor).apply {
+                reconfigResetToggle()
+                reconfigSetScreenRestore(false)
+            }
+        }
+        if ((sneak || sneakWasEnabled) && inputBlocked || sneakWasEnabled && !sneak) {
+            (mc.options.keyShift as ToggleKeyAccessor).apply {
+                reconfigResetToggle()
+                reconfigSetScreenRestore(false)
+            }
+        }
+        sprintWasEnabled = sprint
+        sneakWasEnabled = sneak
         syncHitboxes(mc)
         val module = ModuleCatalog.byId("auto_text") ?: return
         if (risingEdge("auto_text:send", module.key("send_key"), window, inputBlocked) && module.enabled) {
@@ -65,8 +101,9 @@ object ReConfigModuleRuntime {
     }
 
     private fun risingEdge(token: String, key: Int, window: Long, blocked: Boolean): Boolean {
-        val down = key in GLFW.GLFW_KEY_SPACE..GLFW.GLFW_KEY_LAST && GLFW.glfwGetKey(window, key) == GLFW.GLFW_PRESS
+        val down = isDown(key, window)
         val wasDown = previouslyDown.put(token, down) == true
         return !blocked && down && !wasDown
     }
+    private fun isDown(key: Int, window: Long) = key in GLFW.GLFW_KEY_SPACE..GLFW.GLFW_KEY_LAST && GLFW.glfwGetKey(window, key) == GLFW.GLFW_PRESS
 }

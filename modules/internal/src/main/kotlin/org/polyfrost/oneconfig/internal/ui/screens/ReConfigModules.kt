@@ -54,12 +54,13 @@ import org.polyfrost.oneconfig.internal.ui.themes.LocalTheme
 
 @Composable private fun ModulesGrid(open:(ClientModule)->Unit){
     var category by remember { mutableStateOf("All") }
-    val qualityOfLife=setOf("auto_text","better_sounds","item_counter","nick_hider","waypoints")
-    val gameplay=setOf("hitbox","hurt_cam","waila","freelook","wind_charge_optimizer","pearl_optimizer")
-    val visual=setOf("fog","fov","hit_color","motion_blur","particles","weather","crosshair")
-    val filteredModules=when(category){"Quality of Life"->ModuleCatalog.modules.filter{it.id in qualityOfLife};"Gameplay"->ModuleCatalog.modules.filter{it.id in gameplay};"Visual"->ModuleCatalog.modules.filter{it.id in visual};else->ModuleCatalog.modules}
+    val qualityOfLife=setOf("auto_text","better_sounds","nick_hider","waypoints","toggle_sprint","toggle_sneak","streamer_mode")
+    val gameplay=setOf("hitbox","hurt_cam","freelook","zoom","wind_charge_optimizer","pearl_optimizer")
+    val visual=setOf("fog","fov","hit_color","motion_blur","particles","weather","crosshair","fullbright","team_highlight")
+    val huds=setOf("item_counter","waila","cps","fps","keystrokes","armor_status","effect_status","coordinates","combo_counter","inventory_hud","memory_monitor","server_status")
+    val filteredModules=when(category){"Quality of Life"->ModuleCatalog.modules.filter{it.id in qualityOfLife};"Gameplay"->ModuleCatalog.modules.filter{it.id in gameplay};"Visual"->ModuleCatalog.modules.filter{it.id in visual};"HUDs"->ModuleCatalog.modules.filter{it.id in huds};else->ModuleCatalog.modules}
     Column(verticalArrangement=Arrangement.spacedBy(18.dp)){
-        Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){listOf("All","Quality of Life","Gameplay","Visual").forEach{label->Chip(label,category==label){category=label}}}
+        Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){listOf("All","Quality of Life","Gameplay","Visual","HUDs").forEach{label->Chip(label,category==label){category=label}}}
         LazyVerticalGrid(columns=GridCells.Fixed(4),verticalArrangement=Arrangement.spacedBy(19.dp),horizontalArrangement=Arrangement.spacedBy(19.dp),modifier=Modifier.padding(end=14.dp)){
             items(filteredModules,key={it.id}){ModuleCard(it){open(it)}}
         }
@@ -98,6 +99,8 @@ import org.polyfrost.oneconfig.internal.ui.themes.LocalTheme
             if(module.id=="crosshair") item { CrosshairPreview(module) }
             items(module.settings,key={it.id}){SettingRow(module,it)}
             if(module.id=="waypoints") item { WaypointManager() }
+            if(module.id=="hitbox") item { HitboxCategoryEditor() }
+            if(module.id=="team_highlight") item { TeamHighlightEditor() }
         }
     }
 }

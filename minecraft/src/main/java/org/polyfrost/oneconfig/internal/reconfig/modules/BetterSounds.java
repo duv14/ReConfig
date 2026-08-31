@@ -23,6 +23,8 @@ public final class BetterSounds {
             case "minecraft:entity.player.attack.strong", "minecraft:entity.player.attack.crit", "minecraft:entity.player.attack.knockback", "minecraft:entity.player.attack.sweep", "minecraft:entity.player.attack.weak" -> "hits";
             case "minecraft:entity.wind_charge.throw", "minecraft:entity.wind_charge.wind_burst" -> "wind_charges";
             case "minecraft:item.mace.smash_air", "minecraft:item.mace.smash_ground", "minecraft:item.mace.smash_ground_heavy" -> "mace_hits";
+            // The supplied pack's random/break asset is scoped to shields here, not all item breaks.
+            case "minecraft:item.shield.break" -> "shield_break";
             default -> null;
         };
         if (category == null || !Boolean.parseBoolean(ModuleAccess.choice("better_sounds", category, "true"))) {

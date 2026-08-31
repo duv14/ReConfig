@@ -1,6 +1,7 @@
 {
   "gameplay.eating": { "sounds": ["reconfig:gameplay/eating"] },
-  "gameplay.hits": { "sounds": ["reconfig:gameplay/hits"] },
+  "gameplay.hits": { "sounds": ["reconfig:gameplay/hits_1", "reconfig:gameplay/hits_2", "reconfig:gameplay/hits_3"] },
   "gameplay.wind_charges": { "sounds": ["reconfig:gameplay/wind_charges"] },
-  "gameplay.mace_hits": { "sounds": ["reconfig:gameplay/mace_hits"] }
+  "gameplay.mace_hits": { "sounds": ["reconfig:gameplay/mace_hits"] },
+  "gameplay.shield_break": { "sounds": ["reconfig:gameplay/shield_break"] }
 }

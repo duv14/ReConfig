@@ -36,6 +36,7 @@ object ShellState {
     var playerName by mutableStateOf("Player")
     var playerUuid by mutableStateOf("")
     var serverAddress by mutableStateOf("")
+    var serverTelemetry by mutableStateOf("")
     var uiOpen by mutableStateOf(false)
 
     /** PNG bytes for the local player's head avatar or null until loaded */
