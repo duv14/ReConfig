@@ -1,0 +1,11 @@
+# Combat source integration
+
+ReConfig by duv14 incorporates OneConfig by Polyfrost and contributors. Combat additions adapt the user-supplied Hitbox Categories 1.21.11 v1.2.0 and Team Highlight source archives by duv14. The Hitbox Categories MIT notice is retained verbatim in `licenses/HITBOX-CATEGORIES-LICENSE.txt`. The supplied Team Highlight archive did not contain a separate license text; it is credited as supplied duv14 source, not attributed to Polyfrost.
+
+Both integrations live inside the existing ReConfig module editor; no standalone entrypoint, Mod Menu entry, command, or End-key menu was copied. The `hitbox` module retains its identity and vanilla F3+B synchronization. Category names, normal/hurt colors, player membership, thickness and aimed/in-range color are persisted under `config/reconfig/hitbox-categories.json`. Team roles and colors are persisted in `config/reconfig/team-highlight.json`; the enabled toggle belongs to the `team_highlight` module.
+
+Personal sample usernames were removed from default categories. Membership is case-insensitive and exclusive across categories. Invalid loaded category records are skipped; colors and thickness sanitize to defaults. Team role entries sanitize invalid names, null roles and duplicates, preserving intentionally black colors.
+
+Minecraft hooks were ported to Mojang 1.21.11 API names using mappings.dev: `EntityHitboxDebugRenderer.showHitboxes`, `Gizmos.cuboid`, `GizmoStyle.stroke`, `Player.isWithinAttackRange`, `Entity.isCurrentlyGlowing`, and camera `position`. Team glow and color both require camera-to-eye line of sight, with collider/fluid raycasting. Tracked invisible or occluded players explicitly do not glow while the module is enabled; disabling restores vanilla behavior. Untracked entities retain vanilla behavior.
+
+`tests/CombatConfigTest.java` exercises empty sample defaults, exclusive membership, rename/colors, invalid thickness, range/hurt precedence, distance width, flash expiration, role updates and sanitization. It passed with the available Java 17 compiler. Minecraft hooks and Compose UI still require a Java 21 / Minecraft dependency build and live client verification. No full build or visual runtime verification is claimed.

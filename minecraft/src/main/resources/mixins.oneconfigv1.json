@@ -60,5 +60,15 @@
         ,"reconfig.Mixin_ReConfigProjectileUse"
         ,"reconfig.Mixin_ReConfigProjectileConfirm"
         ,"reconfig.Mixin_ReConfigMotionBlur"
+        ,"reconfig.Mixin_ReConfigMouseCamera"
+        ,"reconfig.Mixin_ReConfigToggleOptions"
+        ,"reconfig.ToggleKeyAccessor"
+        ,"reconfig.Mixin_ReConfigFullbright"
+        ,"reconfig.Mixin_ReConfigStreamerChat"
+        ,"reconfig.Mixin_ReConfigStreamerPlayers"
+        ,"reconfig.Mixin_ReConfigStreamerAddress"
+        ,"reconfig.Mixin_ComboDamage"
+        ,"reconfig.Mixin_ReConfigHitboxes"
+        ,"reconfig.Mixin_ReConfigTeamHighlight"
     ]
 }

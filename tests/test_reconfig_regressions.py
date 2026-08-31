@@ -33,10 +33,14 @@ class ReConfigRegressionTests(unittest.TestCase):
         import json
         resource = ROOT / "minecraft/src/main/resources/assets/reconfig"
         events = json.loads((resource / "sounds.json").read_text())
-        for category in ["eating", "hits", "wind_charges", "mace_hits"]:
+        for category in ["eating", "hits", "wind_charges", "mace_hits", "shield_break"]:
             self.assertIn("gameplay." + category, events)
-            sound = resource / "sounds/gameplay" / (category + ".ogg")
-            self.assertEqual(b"OggS", sound.read_bytes()[:4])
+            for entry in events["gameplay." + category]["sounds"]:
+                name = entry if isinstance(entry, str) else entry["name"]
+                namespace, path = name.split(":", 1)
+                self.assertEqual("reconfig", namespace)
+                sound = resource / "sounds" / (path + ".ogg")
+                self.assertEqual(b"OggS", sound.read_bytes()[:4])
 
     def test_collector_targets_only_requested_minecraft(self):
         build = (ROOT / "build.gradle.kts").read_text()
@@ -103,11 +107,16 @@ class ReConfigRegressionTests(unittest.TestCase):
             marker = 'ClientModule("'
             if marker in line:
                 ids.append(line.split(marker, 1)[1].split('"', 1)[0])
-        self.assertEqual(18, len(ids))
+        self.assertEqual(34, len(ids))
+        self.assertEqual(len(ids), len(set(ids)))
         module_lines = [line for line in catalog.splitlines() if 'ClientModule("' in line]
         self.assertTrue(all("key(" in line for line in module_lines))
         self.assertNotIn('ClientModule("pvp_info"', catalog)
-        self.assertNotIn('ClientModule("zoom"', catalog)
+        self.assertIn('ClientModule("zoom"', catalog)
+        for module in ('team_highlight', 'cps', 'fps', 'keystrokes', 'armor_status', 'effect_status',
+                       'coordinates', 'combo_counter', 'inventory_hud', 'memory_monitor', 'server_status',
+                       'fullbright', 'toggle_sprint', 'toggle_sneak', 'streamer_mode'):
+            self.assertIn(module, ids)
         self.assertIn('ClientModule("wind_charge_optimizer"', catalog)
         self.assertIn('ClientModule("pearl_optimizer"', catalog)
 

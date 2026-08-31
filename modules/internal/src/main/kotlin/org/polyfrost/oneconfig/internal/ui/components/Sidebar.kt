@@ -73,6 +73,10 @@ fun Sidebar() {
                     TopOptionsSection()
                 }
             }
+            if (ShellState.serverTelemetry.isNotEmpty()) {
+                Text(ShellState.serverTelemetry, color = LocalTheme.current.textColorSecondary,
+                    fontSize = 11.sp, modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp))
+            }
             Account()
         }
     }

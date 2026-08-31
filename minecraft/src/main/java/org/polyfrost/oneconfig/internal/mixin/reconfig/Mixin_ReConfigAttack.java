@@ -13,5 +13,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(MultiPlayerGameMode.class)
 public class Mixin_ReConfigAttack {
     @Inject(method = "attack", at = @At("TAIL"), require = 1)
-    private void reconfig$attack(Player player, Entity target, CallbackInfo ci) { HitFlash.attack(target); }
+    private void reconfig$attack(Player player, Entity target, CallbackInfo ci) {
+        HitFlash.attack(target);
+        if (target instanceof Player && org.polyfrost.oneconfig.internal.reconfig.ModuleAccess.enabled("hitbox"))
+            org.polyfrost.oneconfig.internal.reconfig.CombatRepository.getFlashes().record(target.getUUID(), System.currentTimeMillis());
+    }
 }
