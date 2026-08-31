@@ -2,7 +2,7 @@
  * See ATTRIBUTIONS.md and LICENSE-RECONFIG.txt. Original copyright notices are retained.
  */
 plugins {
-    kotlin("jvm") version "2.2.10"
+    kotlin("jvm") version "2.4.10"
     `kotlin-dsl`
 }
 
