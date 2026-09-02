@@ -1,0 +1,58 @@
+{
+  "ui.open": {
+    "sounds": [
+      "oneconfig:ui/open"
+    ]
+  },
+  "ui.close": {
+    "sounds": [
+      "oneconfig:ui/close"
+    ]
+  },
+  "ui.click": {
+    "sounds": [
+      "oneconfig:ui/click"
+    ]
+  },
+  "ui.slider": {
+    "sounds": [
+      "oneconfig:ui/slider"
+    ]
+  },
+  "ui.pad_loop": {
+    "sounds": [
+      {
+        "name": "oneconfig:ui/pad_loop",
+        "stream": true
+      }
+    ]
+  },
+  "ui.mc_ambient": {
+    "sounds": [
+      { "name": "oneconfig:ambient/trees", "stream": true },
+      { "name": "oneconfig:ambient/moog_1", "stream": true },
+      { "name": "oneconfig:ambient/moog_2", "stream": true },
+      { "name": "oneconfig:ambient/lullaby", "stream": true }
+    ]
+  },
+  "ui.mc_ambient.trees": {
+    "sounds": [
+      { "name": "oneconfig:ambient/trees", "stream": true }
+    ]
+  },
+  "ui.mc_ambient.moog_1": {
+    "sounds": [
+      { "name": "oneconfig:ambient/moog_1", "stream": true }
+    ]
+  },
+  "ui.mc_ambient.moog_2": {
+    "sounds": [
+      { "name": "oneconfig:ambient/moog_2", "stream": true }
+    ]
+  },
+  "ui.mc_ambient.lullaby": {
+    "sounds": [
+      { "name": "oneconfig:ambient/lullaby", "stream": true }
+    ]
+  }
+}

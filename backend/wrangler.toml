@@ -1,0 +1,11 @@
+# ReConfig by duv14 incorporates OneConfig by Polyfrost and contributors.
+# See ATTRIBUTIONS.md and LICENSE-RECONFIG.txt. Original copyright notices are retained.
+name = "reconfig-chat"
+main = "src/worker.js"
+compatibility_date = "2026-08-27"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "reconfig-chat"
+database_id = "e4cd7399-bbb1-47c7-ae32-c4d369fb7ad2"
+migrations_dir = "migrations"

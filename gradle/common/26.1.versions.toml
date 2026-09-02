@@ -1,0 +1,13 @@
+# ReConfig by duv14 incorporates OneConfig by Polyfrost and contributors.
+# See ATTRIBUTIONS.md and LICENSE-RECONFIG.txt. Original copyright notices are retained.
+[versions]
+minecraft = "26.1"
+minecraft-end = "26.1.2"
+
+rconfig = "4.0.1"
+
+[libraries]
+rconfig = { module = "com.teamresourceful.resourcefulconfig:resourcefulconfig-common-26.1", version.ref = "rconfig"}
+
+[bundles]
+common-compat = ["rconfig"]

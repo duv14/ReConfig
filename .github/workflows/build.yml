@@ -1,0 +1,97 @@
+# ReConfig by duv14 incorporates OneConfig by Polyfrost and contributors.
+# Distribution credit, not file authorship. Existing notices/licenses remain; see ATTRIBUTIONS.md and LICENSE-RECONFIG.txt.
+# Build Workflow
+
+name: Build
+
+on:
+  pull_request:
+  workflow_dispatch:
+  push:
+    branches-ignore:
+      - develop-v0
+      - main-v0
+    paths-ignore:
+      - 'README.md'
+      - '.github/**'
+      - '.editorconfig'
+      - 'CODE_OF_CONDUCT.md'
+      - 'CONTRIBUTING.md'
+      - 'SECURITY.md'
+      - 'LICENSE'
+      - '.gitattributes'
+      - '.gitignore'
+
+concurrency:
+  group: ${{ github.head_ref || format('{0}-{1}', github.ref, github.run_number) }}
+  cancel-in-progress: true
+
+permissions:
+  pull-requests: write
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+
+    name: CI/CD Build on ${{ matrix.os }}
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: 21
+          distribution: temurin
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          add-job-summary-as-pr-comment: always
+          add-job-summary: always
+          build-scan-publish: true
+          build-scan-terms-of-use-url: "https://gradle.com/terms-of-service"
+          build-scan-terms-of-use-agree: "yes"
+          gradle-home-cache-cleanup: true
+          validate-wrappers: true
+          cache-read-only: ${{ github.ref != 'refs/heads/v1' }}
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            **/loom-cache
+            **/prebundled-jars
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Build
+        run: ./gradlew buildAndCollect --no-daemon
+
+      - name: Backend and regression tests
+        run: |
+          node --test backend/test/worker.test.js
+          python3 -m unittest discover -s tests
+
+      - name: Upload Build Artifacts (Dev)
+        uses: actions/upload-artifact@v4
+        with:
+          name: lib-artifacts (Development purposes)
+          path: |
+            modules/**/build/libs/
+            minecraft/versions/**/build/libs/
+
+      - name: Upload Build Artifacts (Bootstrap)
+        uses: actions/upload-artifact@v4
+        with:
+          name: bootstrap-artifacts (Likely what you're looking for)
+          path: |
+            bootstrap/versions/**/build/libs/

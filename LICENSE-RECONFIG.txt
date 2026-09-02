@@ -1,0 +1,30 @@
+ReConfig — distribution license declaration
+Copyright (C) 2026 duv14 (ReConfig modifications).
+
+ReConfig's adapted OneConfig program and original ReConfig program code are
+distributed under the GNU General Public License, version 3 only (GPL-3.0-only).
+The full GNU GPL version 3 text is included verbatim in the root LICENSE file.
+This distribution elects the GNU GPL option expressly described in section 5
+of the Additional Terms Applicable to OneConfig, version 1.1. The original
+LICENSE and all upstream notices are retained without modification.
+
+Original foundation: OneConfig by Polyfrost Inc. and contributors.
+https://github.com/Polyfrost/OneConfig
+https://polyfrost.org/oneconfig
+
+This is an independent modified distribution by duv14, not an official
+Polyfrost release, and no endorsement or trademark rights are claimed.
+
+Separate third-party files retain their own licenses and copyright notices.
+In particular, the font, icon, Gradle wrapper, Compose and other dependency
+licenses are not replaced by this declaration. Supplied branding and media
+are not automatically relicensed as GPL code; see THIRD_PARTY_NOTICES.md.
+
+The program is supplied WITHOUT ANY WARRANTY, including implied warranties
+of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE, to the extent
+permitted by applicable law. See the GNU GPL version 3 for details.
+
+When conveying binaries, also provide the complete corresponding source
+for that exact version, including modifications and build scripts, under
+the applicable license terms. A link only to upstream OneConfig is not the
+corresponding source for ReConfig. See RELEASE-CHECKLIST.md before publishing.

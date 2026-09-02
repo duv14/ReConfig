@@ -1,0 +1,19 @@
+/* ReConfig by duv14 incorporates OneConfig by Polyfrost and contributors.
+ * See ATTRIBUTIONS.md and LICENSE-RECONFIG.txt. Original copyright notices are retained.
+ */
+package org.polyfrost.oneconfig.internal.mixin.skia;
+
+import net.minecraft.client.Minecraft;
+import org.polyfrost.oneconfig.internal.ui.compose.SkiaFontRenderer;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+@Mixin(Minecraft.class)
+public class Mixin_InitSkiaFontRenderer {
+    @Inject(method = "<init>", at = @At("TAIL"))
+    void impl$__init__(CallbackInfo ci) {
+        SkiaFontRenderer.INSTANCE.init();
+    }
+}
