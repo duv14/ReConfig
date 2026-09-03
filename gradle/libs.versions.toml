@@ -6,7 +6,7 @@
 # All
 kotlin = "2.3.0"
 kotlinx-coroutines = "1.10.2"
-kotlinx-atomicfu = "0.29.0"
+kotlinx-atomicfu = "0.33.0"
 fabric-language-kotlin = "1.13.8+kotlin.2.3.0"
 google-ksp = "2.3.10"
 annotations = "24.1.0"
