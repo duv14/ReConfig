@@ -1,0 +1,16 @@
+# ReConfig by duv14 incorporates OneConfig by Polyfrost and contributors.
+# See ATTRIBUTIONS.md and LICENSE-RECONFIG.txt. Original copyright notices are retained.
+[versions]
+minecraft = "26.2"
+minecraft-end = "26.2"
+# Fabric Loader normalizes the game version to semver (26.2-rc-2 -> 26.2-rc.2),
+# so the dependency range must use the normalized form or resolution fails.
+minecraft-range = "26.2.x"
+
+rconfig = "5.0.0"
+
+[libraries]
+rconfig = { module = "com.teamresourceful.resourcefulconfig:resourcefulconfig-common-26.2", version.ref = "rconfig"}
+
+[bundles]
+common-compat = ["rconfig"]

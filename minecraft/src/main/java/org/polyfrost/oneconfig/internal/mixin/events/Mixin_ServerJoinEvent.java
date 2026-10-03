@@ -1,0 +1,22 @@
+/* ReConfig by duv14 incorporates OneConfig by Polyfrost and contributors.
+ * See ATTRIBUTIONS.md and LICENSE-RECONFIG.txt. Original copyright notices are retained.
+ */
+package org.polyfrost.oneconfig.internal.mixin.events;
+
+import net.minecraft.client.multiplayer.ClientPacketListener;
+import org.polyfrost.oneconfig.api.event.v1.EventManager;
+import org.polyfrost.oneconfig.api.event.v1.events.ServerJoinEvent;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+@Mixin(ClientPacketListener.class)
+public class Mixin_ServerJoinEvent {
+
+    @Inject(method = "handleLogin", at = @At("RETURN"))
+    private void onLoginSuccess(CallbackInfo ci) {
+        EventManager.INSTANCE.post(ServerJoinEvent.INSTANCE);
+    }
+
+}

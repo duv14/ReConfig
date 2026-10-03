@@ -1,0 +1,19 @@
+[
+  {
+    "modid": "oneconfigv1",
+    "name": "${mod_name}",
+    "description": "ReConfig standalone client",
+    "version": "${mod_version}",
+    "mcversion": "${mc_version}",
+    "url": "",
+    "updateUrl": "",
+    "authorList": [
+      "duv14",
+      "Polyfrost (original UI source)"
+    ],
+    "credits": "",
+    "logoFile": "",
+    "screenshots": [],
+    "dependencies": []
+  }
+]

@@ -1,0 +1,1 @@
+{"name":"reconfig-backend","private":true,"type":"module","scripts":{"test":"node --test","deploy":"wrangler deploy","db:migrate":"wrangler d1 migrations apply reconfig-chat --remote"},"devDependencies":{"wrangler":"^4.32.0"}}

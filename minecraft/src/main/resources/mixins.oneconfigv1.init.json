@@ -1,0 +1,8 @@
+{
+  "compatibilityLevel": "JAVA_21",
+  "minVersion": "0.8",
+  "package": "org.polyfrost.oneconfig.internal.mixin.init",
+  "plugin": "org.polyfrost.oneconfig.internal.OneConfigEarlyMixinInit",
+  "verbose": true,
+  "target": "@env(INIT)"
+}

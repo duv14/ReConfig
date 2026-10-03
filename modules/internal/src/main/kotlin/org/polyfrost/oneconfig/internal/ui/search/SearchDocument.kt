@@ -1,0 +1,73 @@
+/* ReConfig by duv14 incorporates OneConfig by Polyfrost and contributors.
+ * See ATTRIBUTIONS.md and LICENSE-RECONFIG.txt. Original copyright notices are retained.
+ */
+package org.polyfrost.oneconfig.internal.ui.search
+
+/** Where a search document should appear */
+sealed interface SearchScope {
+    /** Mod cards */
+    data object Mods : SearchScope
+
+    /** Every option visible in global search */
+    data object Options : SearchScope
+
+    /** Keybinds in keybind screen */
+    data object Keybinds : SearchScope
+
+    /** HUD providers in the HUD editor's library */
+    data object Huds : SearchScope
+
+    /** Every option in a specific mod's config */
+    data class Config(val id: String) : SearchScope
+}
+
+data class SearchMetadata(
+    val title: String? = null,
+    val id: String? = null,
+    val description: String? = null,
+    /** Accordion a config option is in */
+    val section: String? = null,
+    val category: String? = null,
+    val subcategory: String? = null,
+    val tags: List<String> = emptyList(),
+    /** Data about the mod/config owning this option */
+    val modTitle: String? = null,
+    val modDescription: String? = null,
+    val path: String? = null,
+) {
+    /** Returns subcategory only if it differs from category */
+    val distinctSubcategory: String?
+        get() = subcategory?.takeUnless { it == category }
+}
+
+/**
+ * A searchable document
+ *
+ * [payload] is used by screens to map back to what they need to render
+ */
+class SearchDocument<T>(
+    val id: String,
+    val scopes: Set<SearchScope>,
+    val metadata: SearchMetadata,
+    val payload: T,
+) {
+    /** Whether this document indexes the same text as [other] */
+    fun contentEquals(other: SearchDocument<*>): Boolean =
+        id == other.id && scopes == other.scopes && metadata == other.metadata
+
+    /** Whether this entry can safely be replaced by [other] */
+    fun equivalentTo(other: SearchDocument<*>): Boolean = contentEquals(other) && payload === other.payload
+
+    override fun toString(): String {
+        return "SearchDocument(id=$id, scopes=$scopes, metadata=$metadata, payload=$payload)"
+    }
+}
+
+/** Produces part of the searchable corpus and is called async when the corpus rebuilds */
+fun interface SearchDocumentSource {
+    fun documents(): List<SearchDocument<*>>
+
+    /** Sources whose data this one reads so invalidating any of them invalidates this source too */
+    val dependencies: Set<SearchDocumentSource>
+        get() = emptySet()
+}

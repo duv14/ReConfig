@@ -1,0 +1,42 @@
+# ReConfig by duv14 incorporates OneConfig by Polyfrost and contributors.
+# Distribution credit, not file authorship. Existing notices/licenses remain; see ATTRIBUTIONS.md and LICENSE-RECONFIG.txt.
+name: Bug Report
+description: File a bug report. Keep it concise, factual, and structured. Include screenshots if possible.
+labels: ["bug"]
+body:
+- type: markdown
+  attributes:
+    value: Before raising an issue, please search for existing issues to avoid creating duplicates.
+- type: textarea
+  id: reporter
+  attributes:
+    label: Original reporter & ticket id
+    description: Provide the name of the original reporter, if you are rewording a ticket. If you are reporting a new bug, leave this blank.
+  validations:
+    required: false
+- type: textarea
+  id: category
+  attributes:
+    label: Category
+    description: Which part of the product does this impact? Where is it? (e.g. "Frontend", "Backend", "API", "HUD", "Interface", "Gameplay")
+  validations:
+    required: true
+- type: textarea
+  id: bug-description
+  attributes:
+    label: Bug description
+    description: Summarize the bug encountered as shortly and clearly as possible. Include attachments like; screenshots, videos, logs, etc.
+  validations:
+    required: true
+- type: textarea
+  id: steps-to-reproduce
+  attributes:
+    label: Steps to reproduce
+    description: Describe the steps to reproduce the issue. Include full mods list, loader, version
+  validations:
+    required: true
+- type: textarea
+  id: anything-else
+  attributes:
+    label: Anything else?
+    description: Let us know if you have any additional feedback!

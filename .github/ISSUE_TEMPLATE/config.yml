@@ -1,0 +1,7 @@
+# ReConfig by duv14 incorporates OneConfig by Polyfrost and contributors.
+# Distribution credit, not file authorship. Existing notices/licenses remain; see ATTRIBUTIONS.md and LICENSE-RECONFIG.txt.
+blank_issues_enabled: true
+contact_links:
+  - name: Discord Server
+    url: https://polyfrost.org/discord
+    about: Please ask and answer usage questions here.
