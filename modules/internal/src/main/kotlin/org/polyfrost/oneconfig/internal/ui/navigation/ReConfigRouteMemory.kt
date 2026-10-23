@@ -14,6 +14,10 @@ import org.polyfrost.oneconfig.internal.ui.navigation.graph.ModulesGraph
 import org.polyfrost.oneconfig.internal.ui.navigation.graph.ModulesRoute
 import org.polyfrost.oneconfig.internal.ui.navigation.graph.SettingsGraph
 import org.polyfrost.oneconfig.internal.ui.navigation.graph.SettingsRoute
+import org.polyfrost.oneconfig.internal.ui.navigation.graph.YourProfileGraph
+import org.polyfrost.oneconfig.internal.ui.navigation.graph.YourProfileRoute
+import org.polyfrost.oneconfig.internal.ui.navigation.graph.PublicServersGraph
+import org.polyfrost.oneconfig.internal.ui.navigation.graph.PublicServersRoute
 import java.util.prefs.Preferences
 
 object ReConfigRouteMemory {
@@ -34,6 +38,8 @@ object ReConfigRouteMemory {
     }
 
     private fun idFor(route: Any?) = when (route) {
+        YourProfileGraph, YourProfileRoute -> "profile"
+        PublicServersGraph, PublicServersRoute -> "servers"
         FriendsGraph, FriendsRoute -> "friends"
         MessagesGraph, MessagesRoute -> "messages"
         ModulesGraph, ModulesRoute -> "modules"
@@ -43,6 +49,8 @@ object ReConfigRouteMemory {
     }
 
     private fun routeFor(id: String): Any = when (id) {
+        "profile" -> YourProfileGraph
+        "servers" -> PublicServersGraph
         "messages" -> MessagesGraph
         "modules" -> ModulesGraph
         "changelog" -> ChangeLogGraph
@@ -50,3 +58,4 @@ object ReConfigRouteMemory {
         else -> FriendsGraph
     }
 }
+

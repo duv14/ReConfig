@@ -12,18 +12,25 @@ public final class CustomCrosshair {
     private CustomCrosshair() {}
     public static boolean active() {
         Minecraft mc = Minecraft.getInstance();
-        return ModuleAccess.enabled("crosshair") && mc.player != null && !mc.player.isSpectator()
+        return ModuleAccess.enabled("crosshair") && compatible() && mc.player != null && !mc.player.isSpectator()
             && !mc.options.hideGui && mc.options.getCameraType().isFirstPerson();
+    }
+    private static boolean compatible() {
+        if (flag("override_external")) return true;
+        net.fabricmc.loader.api.FabricLoader loader = net.fabricmc.loader.api.FabricLoader.getInstance();
+        return !loader.isModLoaded("custom-crosshair-mod") && !loader.isModLoaded("customcrosshair") && !loader.isModLoaded("dynamiccrosshair");
     }
     public static boolean render(GuiGraphics graphics) {
         Minecraft mc = Minecraft.getInstance();
         if (!active() || mc.screen != null) return false;
         int length = Math.max(1, Math.round(ModuleAccess.number("crosshair", "length", 7)));
+        int width = Math.round(ModuleAccess.number("crosshair", "width", length));
+        int height = Math.round(ModuleAccess.number("crosshair", "height", length));
         int gap = Math.max(0, Math.round(ModuleAccess.number("crosshair", "gap", 3)));
         int thickness = Math.max(1, Math.round(ModuleAccess.number("crosshair", "thickness", 2)));
         if (flag("dynamic_spread")) gap += Math.min(8, (int) Math.round(mc.player.getDeltaMovement().horizontalDistance() * 20));
         String shape = ModuleAccess.choice("crosshair", "shape", "Cross");
-        int radius = Math.min(65, length + gap + thickness + 2);
+        int radius = Math.min(65, Math.max(width, height) + gap + thickness + 2);
         int cx = mc.getWindow().getGuiScaledWidth() / 2;
         int cy = mc.getWindow().getGuiScaledHeight() / 2;
         int color = EffectMath.alpha(EffectMath.color(ModuleAccess.choice("crosshair", "crosshair_color", "#FFFFFF"), -1), ModuleAccess.number("crosshair", "crosshair_opacity", 100));
@@ -34,11 +41,11 @@ public final class CustomCrosshair {
             for (int y = -radius; y <= radius; y++) {
                 int start = Integer.MIN_VALUE;
                 for (int x = -radius; x <= radius + 1; x++) {
-                    boolean filled = x <= radius && sample(shape, x, y, length, gap, thickness, dot);
+                    boolean filled = x <= radius && sample(shape, x, y, width, height, gap, thickness, dot);
                     if (pass == 0 && x <= radius && !filled) {
                         for (int dy = -1; dy <= 1 && !filled; dy++)
                             for (int dx = -1; dx <= 1 && !filled; dx++)
-                                filled = sample(shape, x + dx, y + dy, length, gap, thickness, dot);
+                                filled = sample(shape, x + dx, y + dy, width, height, gap, thickness, dot);
                     }
                     if (filled && start == Integer.MIN_VALUE) start = x;
                     if (!filled && start != Integer.MIN_VALUE) {
@@ -52,7 +59,7 @@ public final class CustomCrosshair {
         return true;
     }
     private static boolean flag(String setting) { return Boolean.parseBoolean(ModuleAccess.choice("crosshair", setting, "false")); }
-    private static boolean sample(String shape, int x, int y, int length, int gap, int thickness, boolean dot) {
-        return CrosshairPattern.sample(shape,x,y,length,gap,thickness,dot);
+    private static boolean sample(String shape, int x, int y, int width, int height, int gap, int thickness, boolean dot) {
+        return CrosshairPattern.sample(shape,x,y,width,height,gap,thickness,dot);
     }
 }

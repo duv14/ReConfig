@@ -5,6 +5,12 @@ package org.polyfrost.oneconfig.internal.ui.screens
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.unit.dp
+import org.polyfrost.oneconfig.internal.ui.navigation.NavigationGroups
+import org.polyfrost.oneconfig.internal.ui.shell.LocalNavController
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,11 +27,18 @@ fun SearchResultsScreen(query: String) {
             it.id.replace('_', ' ').contains(normalized, true) ||
             it.settings.any { setting -> setting.title.contains(normalized, true) }
     }
-    if (!hasReConfigModules) {
+    val pages = NavigationGroups.flatMap { it.routes.asList() }.filter { it.id.contains(normalized, true) }
+    if (!hasReConfigModules && pages.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text("No ReConfig results for \"$normalized\"", color = theme.textColorSecondary, fontSize = 15.sp)
         }
         return
     }
-    ReConfigModuleSearchResults(normalized)
+    Column {
+        pages.forEach { page ->
+            Text(page.id.replaceFirstChar { it.titlecase() }, color = theme.textColor,
+                modifier = Modifier.clickable { LocalNavController.wrapper.navigate(page.route) }.padding(12.dp))
+        }
+        if (hasReConfigModules) ReConfigModuleSearchResults(normalized)
+    }
 }

@@ -87,6 +87,23 @@ class KtConfigProfileRebindTest {
         }
     }
 
+    @Test
+    fun `kotlin delegates save through an already registered canonical tree`() {
+        ConfigManager.active().register(Tree.tree("kt_profile_rebind.json").put(
+            Properties.simple("enabled", "Enabled", null, false, Boolean::class.javaObjectType)
+        ))
+        val config = RebindConfig()
+        config.initialize(false)
+        config.enabled = true
+        config.save()
+        val stored = requireNotNull(ConfigManager.active().load("kt_profile_rebind.json")).getProp("enabled").getAs<Boolean>()
+        assertTrue(stored, "the value set through a Kotlin delegate must be saved by the registered tree")
+        ConfigManager.createProfile(PROFILE)
+        assertFalse(config.enabled, "a fresh profile must retain the Kotlin property schema and defaults")
+        ConfigManager.openProfile("")
+        assertTrue(config.enabled, "the canonical root value must survive a profile rebind")
+    }
+
     private fun cleanup() {
         val path = ConfigManager.PROFILES_DIR.resolve(PROFILE)
         if (Files.exists(path)) {

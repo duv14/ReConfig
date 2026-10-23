@@ -71,6 +71,8 @@ subprojects {
                                 languageVersion = JavaLanguageVersion.of(javaVersion)
                             }
                             outputs.upToDateWhen { false }
+                            workingDir = layout.buildDirectory.dir("test-run/$name").get().asFile
+                            doFirst { workingDir.mkdirs() }
                         }
                     }
                 }

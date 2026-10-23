@@ -16,10 +16,10 @@ object PauseMenuIntegration {
     fun register() {
         if (registered) return
         registered = true
-        ScreenEvents.AFTER_INIT.register { _, screen, scaledWidth, _ ->
+        ScreenEvents.AFTER_INIT.register { _, screen, _, scaledHeight ->
             if (screen !is PauseScreen) return@register
             val button = Button.builder(Component.literal("◆ ReConfig")) { OneConfigUIScreen.openLastSession() }
-                .bounds((scaledWidth - 106).coerceAtLeast(4), 8, 98, 20)
+                .bounds(8, (scaledHeight - 28).coerceAtLeast(4), 98, 20)
                 .build()
             //? if >= 26.2 {
             Screens.getWidgets(screen).add(button)

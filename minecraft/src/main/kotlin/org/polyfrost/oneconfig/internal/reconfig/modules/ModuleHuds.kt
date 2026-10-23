@@ -20,6 +20,16 @@ import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.entity.EquipmentSlot
 import net.minecraft.core.registries.BuiltInRegistries
 import java.util.Locale
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import org.polyfrost.compose.composables.PolyCanvas
+import org.polyfrost.compose.composables.PolyModifier
+import org.polyfrost.compose.composables.size
+import org.polyfrost.compose.render.FontManager
+import org.polyfrost.compose.render.PolyColor
+import org.polyfrost.oneconfig.internal.OneConfigConfig
+import net.minecraft.client.resources.sounds.SimpleSoundInstance
+import net.minecraft.sounds.SoundEvents
 
 object ReConfigHudVisibility {
     fun gameplayOverlayVisible() = !ShellState.uiOpen || HudManager.isEditorOpen
@@ -31,6 +41,8 @@ object ModuleHuds {
     @Volatile var targetText = ""
     @Volatile var inWorld = false
     val counters = HudCounters()
+    val confirmedReach = ConfirmedReach()
+    var totemText = "Totems: 0"
     var coordinateText = ""
     var effectText = "No active effects"
     var serverText = "Offline"
@@ -46,6 +58,7 @@ object ModuleHuds {
     var projectileText = "Arrows 0 • Pearls 0 • Wind 0"
     var sessionText = "Session 00:00 • Hits 0 • Deaths 0"
     private var sessionStartedAt = now()
+    private var lastHealthSoundAt = -30_000L
     private var sessionDeaths = 0
     private var wasAlive = true
     private var world: Any? = null
@@ -58,7 +71,7 @@ object ModuleHuds {
         HudManager.register(WailaHud(), "oneconfig.builtin")
         listOf(CpsHud(), FpsHud(), CoordinatesHud(), EffectsHud(), ComboHud(), MemoryHud(), ServerStatusHud(),
             ReachIndicatorHud(), TargetHud(), SpeedometerHud(), LightLevelHud(), ClockHud(), DurabilityAlertHud(),
-            LowHealthHud(), ProjectileCounterHud(), SessionStatsHud(), TotemPopHud(), BrowserMusicHud(),
+            LowHealthHud(), ProjectileCounterHud(), SessionStatsHud(), TotemCounterHud(), TotemPopHud(), BrowserMusicHud(),
             KeystrokesHud(), ArmorStatusHud(), InventoryGridHud()).forEach { HudManager.register(it, "oneconfig.builtin") }
         EventManager.register(MouseInputEvent::class.java) { event ->
             val mc = Minecraft.getInstance()
@@ -70,20 +83,21 @@ object ModuleHuds {
         val mc = Minecraft.getInstance()
         val player = mc.player ?: return
         val victim = packet.entityId()
+        confirmedReach.confirm(victim, packet.sourceCauseId(), player.id, now())
         // Incoming damage always ends a streak, even if its attacker is not a player.
         if (victim == player.id) {
             counters.damage(victim, packet.sourceCauseId(), player.id, now())
             return
         }
         // Do not count mobs, armor stands, missing entities, or unconfirmed swings.
-        if (!ModuleAccess.enabled("combo_counter") || mc.level?.getEntity(victim) !is Player) return
+        if (mc.level?.getEntity(victim) !is Player) return
         counters.damage(victim, packet.sourceCauseId(), player.id, now())
     }
     fun tick(mc: Minecraft) {
         val player = mc.player
         val level = mc.level
         if (world !== level) {
-            counters.clear(); world = level; sessionStartedAt = now(); sessionDeaths = 0; wasAlive = player?.isAlive ?: true
+            counters.clear(); confirmedReach.clear(); world = level; sessionStartedAt = now(); sessionDeaths = 0; lastHealthSoundAt = -30_000L; wasAlive = player?.isAlive ?: true
         }
         inWorld = player != null && level != null
         if (player == null || level == null) { itemText = "Items: 0"; targetText = ""; return }
@@ -103,7 +117,7 @@ object ModuleHuds {
         speedText = if (ModuleAccess.choice("speedometer", "units", "blocks/s") == "km/h")
             "Speed: %.2f km/h".format(Locale.ROOT, horizontalBps * 3.6) else "Speed: %.2f blocks/s".format(Locale.ROOT, horizontalBps)
         lightText = "Light: ${level.getMaxLocalRawBrightness(player.blockPosition())}"
-        val worldTime = level.gameTime
+        val worldTime = level.dayTime
         val worldTicks = Math.floorMod(worldTime, 24000L)
         val totalMinutes = ((worldTicks + 6000L) % 24000L) * 1440L / 24000L
         val hour24 = (totalMinutes / 60L).toInt(); val minute = (totalMinutes % 60L).toInt(); val day = worldTime / 24000L + 1L
@@ -133,26 +147,36 @@ object ModuleHuds {
 
         val healthPct = if (player.maxHealth > 0f) player.health / player.maxHealth * 100f else 100f
         lowHealthWarning = healthPct <= ModuleAccess.number("low_health_warning", "threshold", 30f).coerceIn(1f, 90f)
-        lowHealthText = "${if (lowHealthWarning) "⚠ LOW HEALTH • " else "Health: "}${player.health.coerceAtLeast(0f).let { "%.1f".format(Locale.ROOT, it) }}/${"%.1f".format(Locale.ROOT, player.maxHealth)}"
+        if (lowHealthWarning && player.isAlive && ModuleAccess.enabled("low_health_warning") &&
+            ModuleAccess.choice("low_health_warning", "alert_sound", "true").toBoolean() &&
+            Platform.screen().current<Any?>() == null &&
+            now() - lastHealthSoundAt >= (ModuleAccess.number("low_health_warning", "sound_cooldown", 8f).coerceIn(2f, 30f) * 1000).toLong()) {
+            lastHealthSoundAt = now()
+            val volume = ModuleAccess.number("low_health_warning", "sound_volume", 50f).coerceIn(0f, 100f) / 100f
+            mc.soundManager.play(SimpleSoundInstance.forUI(SoundEvents.NOTE_BLOCK_BASS.value(), .8f, volume * .65f))
+        }
+        lowHealthText = "${if (lowHealthWarning) "LOW HEALTH • " else "Health: "}${player.health.coerceAtLeast(0f).let { "%.1f".format(Locale.ROOT, it) }}/${"%.1f".format(Locale.ROOT, player.maxHealth)}"
 
-        var arrows = 0; var pearls = 0; var wind = 0; var snowballs = 0
+        var arrows = 0; var pearls = 0; var wind = 0; var snowballs = 0; var totems = 0
         for (slot in 0 until inventory.containerSize) {
             val stack = inventory.getItem(slot); if (stack.isEmpty) continue
             when (BuiltInRegistries.ITEM.getKey(stack.item).path) {
                 "arrow", "spectral_arrow", "tipped_arrow" -> arrows += stack.count
                 "ender_pearl" -> pearls += stack.count
                 "wind_charge" -> wind += stack.count
+                "totem_of_undying" -> totems += stack.count
                 "snowball", "egg" -> snowballs += stack.count
             }
         }
+        totemText = "Totems: $totems"
         projectileText = "Arrows $arrows • Pearls $pearls • Wind $wind • Throwables $snowballs"
         val elapsedSec = ((now() - sessionStartedAt).coerceAtLeast(0L) / 1000L)
         sessionText = "Session %02d:%02d • Hits %d • Deaths %d".format(Locale.ROOT, elapsedSec / 60, elapsedSec % 60, counters.totalHits(), sessionDeaths)
 
         val currentTarget = mc.hitResult
-        reachText = if (currentTarget is EntityHitResult) {
+        reachText = if (confirmedReach.visible(now(), (ModuleAccess.number("reach_indicator", "duration_s", 3f) * 1000).toLong())) {
             val decimals = ModuleAccess.number("reach_indicator", "decimals", 2f).toInt().coerceIn(0, 3)
-            "Reach: %.${decimals}f m".format(Locale.ROOT, player.eyePosition.distanceTo(currentTarget.location))
+            "Reach: %.${decimals}f m".format(Locale.ROOT, confirmedReach.distance())
         } else "Reach: —"
         targetHudText = if (currentTarget is EntityHitResult) {
             val entity = currentTarget.entity
@@ -171,17 +195,36 @@ object ModuleHuds {
     }
 }
 
-abstract class ModuleTextHud(private val moduleId: String, title: String, private val initialY: Float) :
-    TextHud("reconfig-$moduleId", title, Category.INFO, "") {
-    init { bgRadius = 8f; bgColor = 0xD018202A.toInt() }
+abstract class ModuleTextHud(protected val moduleId: String, private val cardTitle: String, private val initialY: Float) :
+    TextHud("reconfig-$moduleId", cardTitle, Category.INFO, "") {
+    private val cardText = mutableStateOf("")
+    init { bgRadius = 9f; bgColor = 0xD018202A.toInt() }
     override fun showByDefault() = true
     override fun multipleInstancesAllowed() = false
     override fun updateFrequency() = 50L
-    override fun isAvailable(): Boolean {
-        showBackground = ModuleAccess.choice(moduleId, "show_background", "true").toBoolean()
-        return ReConfigHudVisibility.gameplayOverlayVisible() && ModuleHuds.inWorld && ModuleAccess.enabled(moduleId)
-    }
+    override fun hasBackground() = !OneConfigConfig.disableAllHudBackgrounds && ModuleAccess.choice(moduleId, "show_background", "true").toBoolean()
+    override fun isAvailable() = ReConfigHudVisibility.gameplayOverlayVisible() && ModuleHuds.inWorld && ModuleAccess.enabled(moduleId)
     override fun defaultPosition() = 8f to initialY
+    override fun update(): Boolean { cardText.value = decorate(concat(prefix, getText(), suffix)); return true }
+    @Composable override fun Content() {
+        val lines = cardText.value.split('\n', '|', '•').map { it.trim() }.filter { it.isNotEmpty() }
+        val titleFont = FontManager.getFont(6.5f, getPoppinsFontName())
+        val valueFont = FontManager.getFont(9f * textScale, getPoppinsFontName())
+        val width = maxOf(80f, titleFont.measureTextWidth(cardTitle.uppercase()) + 18f,
+            (lines.maxOfOrNull { valueFont.measureTextWidth(it) } ?: 0f) + 18f)
+        val lineHeight = 12f * textScale
+        val height = 22f + lines.size.coerceAtLeast(1) * lineHeight
+        PolyCanvas(PolyModifier.size(width, height)) { x, y, w, h ->
+            paint.isAntiAlias = true
+            if (showBackground && hasBackground() && !bgMerged) {
+                rect(x, y, w, h, PolyColor(bgColor), bgRadius)
+                rectStroke(x + .4f, y + .4f, w - .8f, h - .8f, PolyColor(0x368DB9DC), .7f, bgRadius)
+            }
+            rect(x + 8, y + 8, 2f, 6f, PolyColor(0xFF00A6FF.toInt()), 1f)
+            text(cardTitle.uppercase(), x + 14, y + 13, PolyColor(0xFFA9B9CC.toInt()), titleFont)
+            lines.forEachIndexed { index, line -> text(line, x + 8, y + 25 + index * lineHeight, PolyColor(textColor), valueFont) }
+        }
+    }
 }
 class CpsHud : ModuleTextHud("cps", "CPS", 40f) {
     override fun getText() = "L ${ModuleHuds.counters.cps(0, ModuleHuds.now())} | R ${ModuleHuds.counters.cps(1, ModuleHuds.now())} CPS"
@@ -199,7 +242,7 @@ class MemoryHud : ModuleTextHud("memory_monitor", "Memory Monitor", 165f) {
     override fun getText(): String {
         val runtime = Runtime.getRuntime()
         val used = runtime.totalMemory() - runtime.freeMemory()
-        val warning = used.toDouble() / runtime.maxMemory().coerceAtLeast(1) >= 0.85
+        val warning = ModuleAccess.choice("memory_monitor", "usage_warning", "true").toBoolean() && used.toDouble() / runtime.maxMemory().coerceAtLeast(1) >= ModuleAccess.number("memory_monitor", "warning_threshold", 85f) / 100f
         return "${if (warning) "High heap usage! " else ""}RAM: ${used / 1048576} / ${runtime.totalMemory() / 1048576} MiB allocated (${runtime.maxMemory() / 1048576} MiB max)"
     }
 }
@@ -208,7 +251,7 @@ class ServerStatusHud : ModuleTextHud("server_status", "Server Status", 185f) {
 }
 class ReachIndicatorHud : ModuleTextHud("reach_indicator", "Reach Indicator", 205f) {
     override fun getText() = ModuleHuds.reachText
-    override fun isAvailable() = super.isAvailable() && (HudManager.isEditing || Minecraft.getInstance().hitResult is EntityHitResult)
+    override fun isAvailable() = super.isAvailable() && (HudManager.isEditing || ModuleHuds.confirmedReach.visible(ModuleHuds.now(), (ModuleAccess.number("reach_indicator", "duration_s", 3f) * 1000).toLong()))
 }
 
 class TargetHud : ModuleTextHud("target_hud", "Target HUD", 225f) {
@@ -223,36 +266,41 @@ class DurabilityAlertHud : ModuleTextHud("durability_alerts", "Durability Alerts
     override fun isAvailable() = super.isAvailable() && (HudManager.isEditing || ModuleHuds.durabilityWarning)
 }
 class LowHealthHud : ModuleTextHud("low_health_warning", "Low Health Warning", 325f) {
-    override fun getText() = if (HudManager.isEditing && !ModuleHuds.lowHealthWarning) "⚠ LOW HEALTH • 5.0/20.0" else ModuleHuds.lowHealthText
+    override fun getText() = ModuleHuds.lowHealthText
+    override fun defaultPosition() = (HudManager.guiScreenWidth.coerceAtLeast(320f) / 2f + 18f) to (HudManager.guiScreenHeight.coerceAtLeast(240f) / 2f - 12f)
     override fun isAvailable() = super.isAvailable() && (HudManager.isEditing || ModuleHuds.lowHealthWarning)
+    @Composable override fun Content() {
+        val size = 26f * ModuleAccess.number("low_health_warning", "warning_scale", 1f).coerceIn(.5f, 2f)
+        val alpha = (255 * ModuleAccess.number("low_health_warning", "opacity", 100f).coerceIn(10f, 100f) / 100).toInt()
+        PolyCanvas(PolyModifier.size(size, size)) { x, y, w, h ->
+            paint.isAntiAlias = true
+            val red = PolyColor((alpha shl 24) or 0xFF4D5E)
+            if (showBackground && hasBackground()) rect(x, y, w, h, PolyColor(((alpha * .35f).toInt() shl 24) or 0x46151D), w * .3f)
+            // Draw a consistent warning glyph with Skia, never an OS emoji.
+            line(x + w * .5f, y + h * .14f, x + w * .12f, y + h * .83f, red, w * .08f)
+            line(x + w * .12f, y + h * .83f, x + w * .88f, y + h * .83f, red, w * .08f)
+            line(x + w * .88f, y + h * .83f, x + w * .5f, y + h * .14f, red, w * .08f)
+            rect(x + w * .46f, y + h * .38f, w * .08f, h * .22f, red, 1f)
+            rect(x + w * .46f, y + h * .67f, w * .08f, h * .08f, red, 1f)
+        }
+    }
 }
 class ProjectileCounterHud : ModuleTextHud("projectile_counter", "Projectile Counter", 345f) { override fun getText() = ModuleHuds.projectileText }
 class SessionStatsHud : ModuleTextHud("session_stats", "Session Statistics", 365f) { override fun getText() = ModuleHuds.sessionText }
+class TotemCounterHud : ModuleTextHud("totem_counter", "Totem Counter", 425f) {
+    override fun getText() = ModuleHuds.totemText
+    override fun isAvailable() = super.isAvailable() && ModuleAccess.choice("totem_counter", "show_hud", "true").toBoolean()
+}
 class TotemPopHud : ModuleTextHud("totem_pop_customizer", "Totem Pops", 385f) { override fun getText() = TotemPopTracker.displayText }
-class BrowserMusicHud : ModuleTextHud("browser_music_hud", "Browser Music", 405f) { override fun getText() = "♫ ${BrowserMusicBridge.title}" }
 
-class ItemCounterHud : TextHud("reconfig-item-counter", "Item Counter", Category.INFO, "") {
-    init { bgRadius = 8f; bgColor = 0xD018202A.toInt() }
+
+class ItemCounterHud : ModuleTextHud("item_counter", "Item Counter", 40f) {
     override fun getText() = ModuleHuds.itemText
-    override fun showByDefault() = true
-    override fun multipleInstancesAllowed() = false
-    override fun updateFrequency() = 50L
-    override fun isAvailable(): Boolean {
-        showBackground = ModuleAccess.choice("item_counter", "show_background", "true").toBoolean()
-        return ReConfigHudVisibility.gameplayOverlayVisible() && ModuleHuds.inWorld && ModuleAccess.enabled("item_counter")
-    }
     override fun defaultPosition() = (HudManager.guiScreenWidth.coerceAtLeast(320f) / 2f - 40f) to (HudManager.guiScreenHeight.coerceAtLeast(240f) - 65f)
 }
 
-class WailaHud : TextHud("reconfig-waila", "WAILA", Category.INFO, "") {
-    init { bgRadius = 8f; bgColor = 0xD018202A.toInt() }
-    override fun getText() = ModuleHuds.targetText.ifEmpty { if (HudManager.isEditorOpen) "Grass Block" else "" }
-    override fun showByDefault() = true
-    override fun multipleInstancesAllowed() = false
-    override fun updateFrequency() = 50L
-    override fun isAvailable(): Boolean {
-        showBackground = ModuleAccess.choice("waila", "show_background", "true").toBoolean()
-        return ReConfigHudVisibility.gameplayOverlayVisible() && ModuleHuds.inWorld && ModuleAccess.enabled("waila") && (HudManager.isEditing || ModuleHuds.targetText.isNotEmpty())
-    }
+class WailaHud : ModuleTextHud("waila", "Looking at", 20f) {
+    override fun getText() = ModuleHuds.targetText.ifEmpty { if (HudManager.isEditorOpen) "Grass Block\nminecraft:grass_block" else "" }
+    override fun isAvailable() = super.isAvailable() && (HudManager.isEditing || ModuleHuds.targetText.isNotEmpty())
     override fun defaultPosition() = (HudManager.guiScreenWidth.coerceAtLeast(320f) / 2f - 40f) to 20f
 }

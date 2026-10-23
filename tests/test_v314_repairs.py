@@ -7,8 +7,8 @@ def source(path):
     return (ROOT / path).read_text(encoding="utf-8")
 
 
-def test_release_version_is_314():
-    assert "version=3.2.0" in source("gradle.properties")
+def test_release_version_is_330():
+    assert "version=3.3.0" in source("gradle.properties")
 
 
 def test_emoji_transport_uses_asset_tokens_not_unicode():
@@ -67,7 +67,10 @@ def test_social_polling_uses_tab_aware_full_refresh_and_lightweight_background_s
     assert "fun setTabVisible(visible: Boolean)" in social
     assert "if (socialTabVisible && System.currentTimeMillis() - lastFullRefresh >= 10_000L) refresh()" in social
     assert "backgroundSync()" in social
-    assert 'get("/v2/sync?after=' in social
+    assert 'get(syncState.path())' in social
+    sync_state = source("modules/internal/src/main/java/org/polyfrost/oneconfig/internal/reconfig/SocialSyncState.java")
+    assert '"/v2/sync?after=" + messages' in sync_state
+    assert '"&afterInvitation=" + invitations' in sync_state
 
 
 def test_fps_boost_is_a_real_catalog_module_not_a_performance_claim():
@@ -88,5 +91,5 @@ def test_settings_route_uses_native_reconfig_config_tree():
     screen = source("modules/internal/src/main/kotlin/org/polyfrost/oneconfig/internal/ui/screens/ReConfigModules.kt")
     preferences = source("modules/internal/src/main/kotlin/org/polyfrost/oneconfig/internal/ui/screens/Preferences.kt")
     assert "@Composable fun ReConfigSettingsScreen(){" in screen
-    assert "Preferences()" in screen.split("@Composable fun ReConfigSettingsScreen(){", 1)[1].split("}", 1)[0]
+    assert "Preferences()" in screen.split("@Composable fun ReConfigSettingsScreen(){", 1)[1].split("private fun saveUiConfig", 1)[0]
     assert 'PREFERENCES_ID = "reconfig.json"' in preferences

@@ -131,7 +131,8 @@ class ReConfigRegressionTests(unittest.TestCase):
             marker = 'ClientModule("'
             if marker in line:
                 ids.append(line.split(marker, 1)[1].split('"', 1)[0])
-        self.assertEqual(49, len(ids))
+        self.assertEqual(len(set(ids)), len(ids))
+        self.assertIn("totem_counter", ids)
         self.assertEqual(len(ids), len(set(ids)))
         module_lines = [line for line in catalog.splitlines() if 'ClientModule("' in line]
         self.assertTrue(all("key(" in line for line in module_lines))
@@ -157,7 +158,7 @@ class ReConfigRegressionTests(unittest.TestCase):
             "particles": ["particle_opacity", "particle_size"],
             "weather": ["time", "weather"],
             "freelook": ["mode"],
-            "crosshair": ["shape", "length", "gap", "thickness", "crosshair_color"],
+            "crosshair": ["shape", "width", "height", "gap", "thickness", "crosshair_color"],
         }
         for module_id, setting_ids in expected.items():
             line = next(line for line in catalog.splitlines() if f'ClientModule("{module_id}"' in line)
@@ -237,8 +238,13 @@ class ReConfigRegressionTests(unittest.TestCase):
 
     def test_social_tracks_new_messages_and_uses_notifications(self):
         social = (ROOT / "modules/internal/src/main/kotlin/org/polyfrost/oneconfig/internal/ui/screens/ReConfigSocial.kt").read_text()
-        self.assertIn("initializedConversations", social)
-        self.assertIn("Notifications.info(friend.name", social)
+        self.assertIn("syncState.bootstrap", social)
+        self.assertIn("invitationCursor", social)
+        self.assertIn("item.get(\"id\").asLong > syncState.messages && !ShellState.uiOpen", social)
+        self.assertIn("item.get(\"id\").asLong > syncState.requests && !ShellState.uiOpen", social)
+        conversation = social.split("private fun syncConversation", 1)[1].split("private fun backgroundSync", 1)[0]
+        self.assertNotIn("backgroundCursor=", conversation)
+        self.assertNotIn("Notifications.info", conversation)
         self.assertIn("animateScrollToItem", social)
 
     def test_social_messages_are_sender_aligned_deletable_and_scroll_to_bottom(self):
@@ -253,11 +259,10 @@ class ReConfigRegressionTests(unittest.TestCase):
         self.assertNotIn('SocialButton("trash"', social)
         self.assertIn("deleteMessage(line.id)", social)
         self.assertIn("identityUuid", social)
-        self.assertIn('recipientId == friendId', social)
-        self.assertIn('senderId != friendId', social)
-        self.assertIn('parsed.filterNot { line -> target.any { it.id == line.id } }.forEach(target::add)', social)
+        self.assertIn('SocialSyncState.sentByMe(identityUuid, friendId, senderId, recipientId)', social)
+        self.assertIn('(target.toList() + parsed).distinctBy { it.id }.sortedBy { it.id }', social)
         self.assertIn("Accent.copy(.34f)", social)
-        self.assertIn("rememberLazyListState", social)
+        self.assertIn("val listState = remember(name) { LazyListState() }", social)
         self.assertIn("animateScrollToItem(lines.lastIndex)", social)
         self.assertNotIn("AnimatedContent(targetState=lines.toList()", social)
 
@@ -328,11 +333,13 @@ class ReConfigRegressionTests(unittest.TestCase):
         self.assertIn("object ReConfigSocialService", social)
         self.assertIn("fun start(name:String,uuid:String)", social)
 
-    def test_friend_heads_resolve_by_minecraft_username_before_uuid(self):
+    def test_friend_heads_use_official_cached_profiles_off_render_thread(self):
         heads = (ROOT / "modules/internal/src/main/kotlin/org/polyfrost/oneconfig/internal/ui/components/PlayerHead.kt").read_text()
         social = (ROOT / "modules/internal/src/main/kotlin/org/polyfrost/oneconfig/internal/ui/screens/ReConfigSocial.kt").read_text()
         self.assertIn("fun PlayerHead(username: String, uuid: String", heads)
-        self.assertIn('listOf(username, uuid.replace("-", ""))', heads)
+        self.assertIn("sessionserver.mojang.com/session/minecraft/profile/", heads)
+        self.assertIn("withContext(Dispatchers.IO)", heads)
+        self.assertNotIn("mc-heads.net", heads)
         self.assertIn("PlayerHead(friend.name,friend.uuid", social)
 
     def test_changelog_fetches_domain_and_caches_last_success(self):
@@ -340,7 +347,7 @@ class ReConfigRegressionTests(unittest.TestCase):
         self.assertIn("https://duv14.com/changelogsreconfig", changelog)
         self.assertIn('class="changelog"', changelog)
         self.assertIn("withContext(Dispatchers.IO)", changelog)
-        self.assertIn("changelog-cache.html", changelog)
+        self.assertIn("changelog-cache.json", changelog)
         self.assertNotIn("ONECONFIG UPDATE", changelog)
 
     def test_changelog_cannot_remain_stuck_loading_and_can_retry(self):

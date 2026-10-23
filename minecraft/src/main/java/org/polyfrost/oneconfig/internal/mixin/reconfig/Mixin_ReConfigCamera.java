@@ -17,9 +17,16 @@ public abstract class Mixin_ReConfigCamera {
 
     // Vanilla first aligns the camera to the player. Override that camera-only
     // rotation immediately afterwards, leaving the player and movement vector alone.
+    //? if >= 26.1 {
     @Inject(method = "alignWithEntity", at = @At(value = "INVOKE",
         target = "Lnet/minecraft/client/Camera;setRotation(FF)V", ordinal = 1,
-        shift = At.Shift.AFTER), require = 0)
+        shift = At.Shift.AFTER), require = 1)
+    //? } else {
+    /*@Inject(method = "setup", at = {
+        @At(value = "INVOKE", target = "Lnet/minecraft/client/Camera;setRotation(FF)V", ordinal = 0, shift = At.Shift.AFTER),
+        @At(value = "INVOKE", target = "Lnet/minecraft/client/Camera;setRotation(FF)V", ordinal = 1, shift = At.Shift.AFTER)
+    }, require = 2)
+    *///? }
     private void reconfig$rotation(CallbackInfo ci) {
         if (FreeLookController.STATE.active()) {
             setRotation(FreeLookController.STATE.yaw(), FreeLookController.STATE.pitch());

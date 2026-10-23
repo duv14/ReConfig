@@ -32,7 +32,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class MainTest {
     @org.junit.jupiter.api.Test
-    void test() {
+    void test() throws Exception {
         File configFile = new File("config/test_mod.json");
         assertTrue(!configFile.exists() || configFile.delete());
         TestConfig config = new TestConfig();
@@ -44,7 +44,7 @@ public class MainTest {
         System.err.println(t);
         assertTrue(TestConfig.chicken);
         assertFalse(TestConfig.cow5);
-        config.loadFrom(new File(new File(new File(".").getParentFile(), "config-to-migrate-for-test"), "test_migration_mod.json").toPath());
+        config.loadFrom(java.nio.file.Paths.get(java.util.Objects.requireNonNull(getClass().getResource("/config-to-migrate-for-test/test_migration_mod.json")).toURI()));
         assertNotNull(t.get("reserved:overwritten"));
         assertFalse(TestConfig.chicken);
         assertTrue(TestConfig.cow5);

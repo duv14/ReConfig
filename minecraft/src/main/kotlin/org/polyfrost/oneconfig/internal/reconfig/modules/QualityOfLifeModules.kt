@@ -3,14 +3,8 @@
  */
 package org.polyfrost.oneconfig.internal.reconfig.modules
 
-import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback
-import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
-import net.minecraft.core.component.DataComponents
-import net.minecraft.network.chat.Component as McComponent
 import net.minecraft.network.protocol.game.ClientboundEntityEventPacket
-import net.minecraft.world.item.BlockItem
-import net.minecraft.world.level.block.ShulkerBoxBlock
 import net.kyori.adventure.text.Component
 import org.polyfrost.oneconfig.api.event.v1.EventManager
 import org.polyfrost.oneconfig.api.event.v1.events.ChatEvent
@@ -38,25 +32,8 @@ object QualityOfLifeModules {
                 Minecraft.getInstance().execute { TotemPopTracker.onPopPacket(packet) }
             }
         }
-        ItemTooltipCallback.EVENT.register tooltip@{ stack, _, _, lines ->
-            if (!ModuleAccess.enabled("shulker_tooltip")) return@tooltip
-            val item = stack.item
-            if (item !is BlockItem || item.block !is ShulkerBoxBlock) return@tooltip
-            val container = stack.get(DataComponents.CONTAINER) ?: return@tooltip
-            val items = container.nonEmptyItems().toList()
-            if (items.isEmpty()) {
-                lines.add(McComponent.literal("Empty shulker").withStyle(ChatFormatting.DARK_GRAY))
-                return@tooltip
-            }
-            val maxLines = ModuleAccess.number("shulker_tooltip", "max_lines", 6f).toInt().coerceIn(1, 12)
-            lines.add(McComponent.literal("Contents (${items.size} stacks):").withStyle(ChatFormatting.GRAY))
-            items.take(maxLines).forEach { child ->
-                lines.add(McComponent.literal("  ${child.count}× ").withStyle(ChatFormatting.DARK_GRAY)
-                    .append(ItemStackNameCompat.component(child).copy().withStyle(ChatFormatting.GRAY)))
-            }
-            if (items.size > maxLines) {
-                lines.add(McComponent.literal("  +${items.size - maxLines} more").withStyle(ChatFormatting.DARK_GRAY))
-            }
+        net.fabricmc.fabric.api.client.rendering.v1.TooltipComponentCallback.EVENT.register { data ->
+            data as? ShulkerPreview
         }
     }
 

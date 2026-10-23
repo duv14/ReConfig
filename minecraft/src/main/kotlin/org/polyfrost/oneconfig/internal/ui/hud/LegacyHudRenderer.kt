@@ -46,7 +46,7 @@ object LegacyHudRenderer {
         for (hud in HudManager.activeInstances) {
             if (hud !is LegacyHud) continue
             if (!hud.isAvailable()) continue
-            if (ShellState.uiOpen && !HudManager.isEditing) continue
+            if (HudManager.isHudRenderingSuppressed || ShellState.uiOpen && !HudManager.isEditing) continue
             if (!HudManager.isEditing) {
                 if (hud.hidden) continue
                 if (HudManager.isGuiHidden) continue

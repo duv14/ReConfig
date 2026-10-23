@@ -22,7 +22,7 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.Snapshot
@@ -79,8 +79,10 @@ import java.util.prefs.Preferences
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-private data class SocialFriend(val uuid: String, val name: String, val state: String, val online: Boolean)
-private data class ChatLine(val text: String, val mine: Boolean, val sender: String, val id: Long = 0, val time: Long = System.currentTimeMillis(), val replyTo: Long? = null, val replyText: String? = null, val replySender: String? = null)
+data class SocialFriend(val uuid: String, val name: String, val state: String, val online: Boolean)
+data class ChatLine(val text: String, val mine: Boolean, val sender: String, val id: Long = 0, val time: Long = System.currentTimeMillis(), val replyTo: Long? = null, val replyText: String? = null, val replySender: String? = null)
+
+data class SocialInvitation(val id: Long, val sender: String, val address: String, val time: Long)
 
 private data class ReConfigEmoji(val id: String, val asset: String)
 private val reConfigEmojis = listOf(
@@ -106,8 +108,8 @@ private object ReConfigSocialState {
         ReConfigSocialService.addFriend(name)
     }
 
-    fun send(name: String, body: String, replyTo: Long? = null) {
-        ReConfigSocialService.sendMessage(name, body, replyTo)
+    fun send(name: String, body: String, replyTo: Long? = null, onResult: (Boolean) -> Unit = {}) {
+        ReConfigSocialService.sendMessage(name, body, replyTo, onResult)
     }
 
     fun deleteMessage(id: Long) { ReConfigSocialService.deleteMessage(id) }
@@ -120,10 +122,11 @@ object ReConfigSocialService {
     @Volatile private var identityName = ""
     @Volatile private var identityUuid = ""
     private fun token():String {
-        val account=identityUuid.ifBlank { identityName.lowercase() }.ifBlank { "unknown" }
+        check(org.polyfrost.oneconfig.internal.reconfig.SocialSyncState.validIdentity(identityName, identityUuid)) { "Sign in with a Minecraft account first" }
+        val account=identityUuid
         val key="accountToken.$account"
         prefs.get(key,null)?.let{return it}
-        val created=prefs.get("deviceToken",null)?:UUID.randomUUID().toString().replace("-","")
+        val created=UUID.randomUUID().toString().replace("-","")
         prefs.put(key,created)
         runCatching{prefs.flush()}
         return created
@@ -132,12 +135,19 @@ object ReConfigSocialService {
         Thread(task, "ReConfig-Social").apply { isDaemon = true }
     }
     @Volatile private var enrolledIdentity = ""
+    private val enrollmentRetry = org.polyfrost.oneconfig.internal.reconfig.EnrollmentRetry()
     @Volatile private var socialTabVisible = false
-    @Volatile private var backgroundCursor = 0L
     @Volatile private var lastBackgroundSync = 0L
     @Volatile private var lastFullRefresh = 0L
     @Volatile private var rateLimitedUntil = 0L
-    private val initializedConversations = mutableSetOf<String>()
+    private val syncState = org.polyfrost.oneconfig.internal.reconfig.SocialSyncState()
+    private val pendingInvitationAcks = linkedSetOf<Long>()
+    private val receivedInvitations = mutableStateListOf<SocialInvitation>()
+    private val historyBefore = ConcurrentHashMap<String, Long>()
+    private val historyMore = mutableStateMapOf<String, Boolean>()
+    private val historyLoading = mutableStateMapOf<String, Boolean>()
+    @Volatile private var networkFailures = 0
+    @Volatile var enrollmentProof: (() -> String)? = null
     private val invitationCooldowns = ConcurrentHashMap<String, Long>()
     private val conversationCursors = ConcurrentHashMap<String, Long>()
 
@@ -145,26 +155,68 @@ object ReConfigSocialService {
         val now = System.currentTimeMillis()
         if (now < rateLimitedUntil) return@runCatching
         if (socialTabVisible && System.currentTimeMillis() - lastFullRefresh >= 10_000L) refresh()
-        else if (!socialTabVisible && now - lastBackgroundSync >= 60_000L) backgroundSync()
+        if (now - lastBackgroundSync >= if (socialTabVisible) 10_000L else 60_000L) backgroundSync()
     } }, 2, 5, TimeUnit.SECONDS) }
 
     @JvmStatic fun start(name:String,uuid:String) {
-        identityName=name.trim().take(16)
-        identityUuid=uuid.replace("-","").lowercase().takeIf { it.length==32 }.orEmpty()
-        ShellState.playerName=identityName.ifBlank { ShellState.playerName }
-        ShellState.playerUuid=identityUuid.ifBlank { ShellState.playerUuid }
-        enrolledIdentity=""
-        worker.execute { runCatching { backgroundSync() } }
+        val nextUuid = uuid.replace("-", "").lowercase()
+        worker.execute {
+            if (identityUuid != nextUuid || identityName != name.trim()) {
+                identityName = name.trim()
+                identityUuid = nextUuid.takeIf { org.polyfrost.oneconfig.internal.reconfig.SocialSyncState.validIdentity(identityName, it) }.orEmpty()
+                enrolledIdentity = ""
+                enrollmentRetry.reset()
+                syncState.reset()
+                pendingInvitationAcks.clear()
+                Snapshot.withMutableSnapshot { receivedInvitations.clear() }
+                historyBefore.clear()
+                Snapshot.withMutableSnapshot { historyMore.clear(); historyLoading.clear() }
+                lastBackgroundSync = 0
+                lastFullRefresh = 0
+                rateLimitedUntil = 0
+                networkFailures = 0
+                conversationCursors.clear()
+                Snapshot.withMutableSnapshot {
+                    ReConfigSocialState.friends.clear()
+                    ReConfigSocialState.chats.clear()
+                    ReConfigSocialState.active = null
+                }
+            }
+            org.polyfrost.oneconfig.internal.reconfig.ReConfigProfileTags.start(identityUuid)
+            ShellState.playerName = identityName
+            ShellState.playerUuid = identityUuid
+            runCatching { backgroundSync() }
+        }
     }
 
     fun setTabVisible(visible: Boolean) {
         socialTabVisible = visible
-        if (visible) worker.execute { runCatching { refresh() } }
+        if (visible) worker.execute { if (System.currentTimeMillis() - lastFullRefresh >= 10_000L) runCatching { refresh() } }
     }
 
     fun openConversation(name: String) {
         ReConfigSocialState.active = name
         worker.execute { runCatching { syncConversation(name) } }
+    }
+
+    @JvmStatic fun friendsSnapshot(): List<SocialFriend> = ReConfigSocialState.friends.toList()
+    @JvmStatic fun conversationSnapshot(name: String): List<ChatLine> = ReConfigSocialState.chats[name]?.toList().orEmpty()
+    @JvmStatic fun invitationsSnapshot(): List<SocialInvitation> = receivedInvitations.toList()
+    fun dismissInvitation(id: Long) { Snapshot.withMutableSnapshot { receivedInvitations.removeAll { it.id == id } } }
+    @JvmStatic fun hasOlderMessages(name: String): Boolean {
+        val friend = ReConfigSocialState.friends.firstOrNull { it.name.equals(name, true) } ?: return false
+        return historyMore[friend.uuid] == true
+    }
+    @JvmStatic fun isLoadingHistory(name: String): Boolean = historyLoading[name] == true
+    @JvmStatic fun loadOlderMessages(name: String) {
+        if (historyLoading[name] == true) return
+        Snapshot.withMutableSnapshot { historyLoading[name] = true }
+        worker.execute { try { checked("Could not load older messages") {
+            ensureEnrolled()
+            val friend = ReConfigSocialState.friends.firstOrNull { it.state == "friends" && it.name.equals(name, true) } ?: return@checked
+            val before = historyBefore[friend.uuid] ?: return@checked
+            if (historyMore[friend.uuid] == true && before > 0) readConversationPage(friend, "/v2/messages?with=${friend.uuid}&before=$before", true)
+        } } finally { Snapshot.withMutableSnapshot { historyLoading[name] = false } } }
     }
 
     fun addFriend(name: String) = worker.execute { checked("Friend request failed") { ensureEnrolled(); post("/v2/friends/request", "{\"name\":${quoted(name)}}"); refresh() } }
@@ -179,17 +231,22 @@ object ReConfigSocialService {
         worker.execute { checked("Invite failed") { ensureEnrolled(); val address=ShellState.serverAddress.ifBlank { error("Join a multiplayer server first") }; post("/v2/invitations", "{\"to\":${quoted(name)},\"serverAddress\":${quoted(address)}}"); Notifications.success("Invite sent", "Invited $name") } }
     }
 
-    fun sendMessage(name: String, body: String, replyTo: Long? = null) = worker.execute {
-        checked("Message not sent") { ensureEnrolled(); val reply = replyTo?.let { ",\"replyTo\":$it" }.orEmpty(); post("/v2/messages", "{\"to\":${quoted(name)},\"body\":${quoted(body)}$reply}"); syncConversation(name) }
+    fun sendMessage(name: String, body: String, replyTo: Long? = null, onResult: (Boolean) -> Unit = {}) = worker.execute {
+        val sent = runCatching {
+            ensureEnrolled()
+            val reply = replyTo?.let { ",\"replyTo\":$it" }.orEmpty()
+            post("/v2/messages", "{\"to\":${quoted(name)},\"body\":${quoted(body)}$reply}")
+        }.onFailure { Notifications.error("Message not sent", friendlyFailure(it)) }.isSuccess
+        // A failed refresh after an accepted POST must not invite resending a duplicate.
+        if (sent) runCatching { syncConversation(name) }
+        onResult(sent)
     }
-    fun deleteMessage(id: Long) = worker.execute { checked("Message not deleted") { ensureEnrolled(); request("/v2/messages/$id", "DELETE", null); Snapshot.withMutableSnapshot { ReConfigSocialState.chats.values.forEach { list -> list.removeAll { it.id == id } } } } }
+    fun deleteMessage(id: Long) = worker.execute { checked("Message not deleted") { ensureEnrolled(); request("/v2/messages/$id", "DELETE", null); applyDeletion(id) } }
 
     private fun refresh() {
         if (!PrivacyConsent.accepted) return
         lastFullRefresh = System.currentTimeMillis()
         ensureEnrolled()
-        val serverHash=ShellState.serverAddress.takeIf(String::isNotBlank)?.let(::sha256).orEmpty()
-        runCatching { post("/v2/presence", "{\"serverHash\":${quoted(serverHash)}}") }
         val friendsJson = runCatching { get("/v2/friends") }.getOrNull() ?: return
         val friends = JsonParser.parseString(friendsJson).asJsonObject.getAsJsonArray("friends") ?: return
         Snapshot.withMutableSnapshot {
@@ -209,67 +266,152 @@ object ReConfigSocialService {
     }
 
     private fun syncConversation(name: String) {
+        ensureEnrolled()
         val friend = ReConfigSocialState.friends.firstOrNull { it.state == "friends" && it.name.equals(name, true) } ?: return
         val after = conversationCursors[friend.uuid] ?: 0L
-        val messages = JsonParser.parseString(get("/v2/messages?with=${friend.uuid}&after=$after")).asJsonObject.getAsJsonArray("messages") ?: return
+        readConversationPage(friend, "/v2/messages?with=${friend.uuid}&after=$after", after == 0L)
+    }
+
+    private fun readConversationPage(friend: SocialFriend, path: String, older: Boolean) {
+        val payload = JsonParser.parseString(get(path)).asJsonObject
+        val messages = payload.getAsJsonArray("messages") ?: return
         val friendId = friend.uuid.replace("-", "").lowercase()
-        val parsed = messages.map { element ->
+        val parsed = messages.mapNotNull { element ->
             val item = element.asJsonObject
             val senderId = item.get("sender").asString.replace("-", "").lowercase()
             val recipientId = item.get("recipient").asString.replace("-", "").lowercase()
-            val mine = friendId.isNotBlank() && recipientId == friendId && senderId != friendId
+            if (!org.polyfrost.oneconfig.internal.reconfig.SocialSyncState.inConversation(identityUuid, friendId, senderId, recipientId)) return@mapNotNull null
+            val mine = org.polyfrost.oneconfig.internal.reconfig.SocialSyncState.sentByMe(identityUuid, friendId, senderId, recipientId)
             val replySenderId = item.get("reply_sender")?.takeUnless { it.isJsonNull }?.asString?.replace("-", "")?.lowercase()
-            ChatLine(item.get("body").asString, mine, if (mine) identityName.ifBlank { ShellState.playerName } else friend.name,
+            ChatLine(item.get("body").asString, mine, if (mine) identityName else friend.name,
                 item.get("id").asLong, item.get("created_at").asLong,
                 item.get("reply_to")?.takeUnless { it.isJsonNull }?.asLong,
                 item.get("reply_body")?.takeUnless { it.isJsonNull }?.asString,
-                replySenderId?.let { if (it == friendId) friend.name else identityName.ifBlank { ShellState.playerName } })
+                replySenderId?.let { if (it == friendId) friend.name else identityName })
         }
-        parsed.maxOfOrNull { it.id }?.let { conversationCursors[friend.uuid] = maxOf(after, it) }
-        parsed.asSequence().filter { !it.mine }.map { it.id }.maxOrNull()?.let { backgroundCursor = maxOf(backgroundCursor, it) }
-        val existing = ReConfigSocialState.chats[friend.name]?.map { it.id }?.toHashSet().orEmpty()
-        if (friend.name in initializedConversations && !ShellState.uiOpen) parsed.filter { !it.mine && it.id !in existing }.forEach { Notifications.info(friend.name, it.text) }
-        initializedConversations += friend.name
+        parsed.maxOfOrNull { it.id }?.let { conversationCursors[friend.uuid] = maxOf(conversationCursors[friend.uuid] ?: 0L, it) }
+        if (older) {
+            payload.get("beforeCursor")?.asLong?.takeIf { it > 0 }?.let { historyBefore[friend.uuid] = it }
+            Snapshot.withMutableSnapshot { historyMore[friend.uuid] = payload.get("hasMore")?.asBoolean == true }
+        }
         Snapshot.withMutableSnapshot {
             val target = ReConfigSocialState.chats.getOrPut(friend.name) { mutableStateListOf() }
-            parsed.filterNot { line -> target.any { it.id == line.id } }.forEach(target::add)
+            val merged = (target.toList() + parsed).distinctBy { it.id }.sortedBy { it.id }
+            if (merged != target.toList()) { target.clear(); target.addAll(merged) }
+        }
+    }
+
+    private fun applyDeletion(id: Long) {
+        Snapshot.withMutableSnapshot {
+            ReConfigSocialState.chats.values.forEach { list ->
+                list.removeAll { it.id == id }
+                for (index in list.indices) if (list[index].replyTo == id) list[index] = list[index].copy(replyText = "Message deleted", replySender = null)
+            }
         }
     }
 
     private fun backgroundSync() {
-        if (!PrivacyConsent.accepted || identityName.isBlank()) return
+        if (!PrivacyConsent.accepted || !org.polyfrost.oneconfig.internal.reconfig.SocialSyncState.validIdentity(identityName, identityUuid)) return
         lastBackgroundSync = System.currentTimeMillis()
         ensureEnrolled()
-        val payload = JsonParser.parseString(get("/v2/sync?after=$backgroundCursor")).asJsonObject
+        val serverHash = ShellState.serverAddress.takeIf(String::isNotBlank)?.let(::sha256).orEmpty()
+        post("/v2/presence", "{\"serverHash\":${quoted(serverHash)}}")
+        val payload = JsonParser.parseString(get(syncState.path())).asJsonObject
+        fun cursor(key: String) = payload.get(key)?.asLong ?: 0L
+        if (!syncState.isReady) {
+            syncState.bootstrap(cursor("cursor"), cursor("requestCursor"), cursor("deletionCursor"), cursor("invitationCursor"))
+            persistNotificationCursors()
+            networkFailures = 0
+            return
+        }
         payload.getAsJsonArray("messages")?.forEach { element ->
-            val item=element.asJsonObject
-            val id=item.get("id")?.asLong ?: return@forEach
-            backgroundCursor=maxOf(backgroundCursor,id)
-            if(!ShellState.uiOpen) Notifications.info(item.get("sender_name")?.asString ?: "ReConfig",item.get("body")?.asString ?: "")
+            val item = element.asJsonObject
+            if (item.get("id").asLong > syncState.messages && !ShellState.uiOpen)
+                Notifications.info(item.get("sender_name")?.asString ?: "ReConfig", item.get("body")?.asString ?: "")
+        }
+        payload.getAsJsonArray("requests")?.forEach { element ->
+            val item = element.asJsonObject
+            if (item.get("id").asLong > syncState.requests && !ShellState.uiOpen)
+                Notifications.info("Friend request", "${item.get("name").asString} wants to be friends")
         }
         payload.getAsJsonArray("invitations")?.forEach { element ->
-            val item=element.asJsonObject
-            if(!ShellState.uiOpen) Notifications.info("Server invite from ${item.get("sender").asString}",item.get("serverAddress").asString)
+            val item = element.asJsonObject
+            val invitation = SocialInvitation(item.get("id").asLong, item.get("sender").asString, item.get("serverAddress").asString, item.get("created_at").asLong)
+            if (invitation.id > syncState.invitations && receivedInvitations.none { it.id == invitation.id }) {
+                Snapshot.withMutableSnapshot {
+                    receivedInvitations.add(invitation)
+                    if (receivedInvitations.size > 100) receivedInvitations.removeAt(0)
+                }
+                if (!ShellState.uiOpen) Notifications.info("Server invite from ${invitation.sender}", "Open Friends to view this invitation")
+            }
+            pendingInvitationAcks.add(invitation.id)
         }
-        payload.get("cursor")?.asLong?.let { backgroundCursor=maxOf(backgroundCursor,it) }
+        payload.getAsJsonArray("deleted")?.forEach { applyDeletion(it.asJsonObject.get("message_id").asLong) }
+        syncState.advance(cursor("cursor"), cursor("requestCursor"), cursor("deletionCursor"), cursor("invitationCursor"))
+        persistNotificationCursors()
+        // An ACK failure leaves the IDs queued; the notification cursor prevents duplicate popups.
+        if (pendingInvitationAcks.isNotEmpty()) {
+            val ids = pendingInvitationAcks.take(50)
+            post("/v2/invitations/ack", "{\"ids\":[${ids.joinToString(",")}]}")
+            pendingInvitationAcks.removeAll(ids.toSet())
+        }
+        networkFailures = 0
     }
 
+    private fun persistNotificationCursors() {
+        prefs.putLong("messageCursor.$identityUuid", syncState.messages)
+        prefs.putLong("requestCursor.$identityUuid", syncState.requests)
+        prefs.putLong("deletionCursor.$identityUuid", syncState.deletions)
+        prefs.putLong("invitationCursor.$identityUuid", syncState.invitations)
+        runCatching { prefs.flush() }
+    }
+
+    @Synchronized
+    fun communityRequest(path: String, method: String = "GET", body: String? = null): String {
+        check(PrivacyConsent.accepted) { "Accept the privacy policy first" }
+        ensureEnrolled()
+        return request(path, method, body)
+    }
+
+    @Synchronized
     private fun ensureEnrolled() {
-        val name = identityName.ifBlank { ShellState.playerName }.takeIf { it.isNotBlank() && it != "Player" } ?: return
-        val uuid=identityUuid.ifBlank { ShellState.playerUuid.takeIf { it.length==32 }.orEmpty() }.ifBlank { UUID.nameUUIDFromBytes("OfflinePlayer:$name".toByteArray(StandardCharsets.UTF_8)).toString().replace("-","") }
+        check(PrivacyConsent.accepted) { "Accept the privacy policy first" }
+        check(org.polyfrost.oneconfig.internal.reconfig.SocialSyncState.validIdentity(identityName, identityUuid)) { "Sign in with a Minecraft account first" }
+        val name = identityName
+        val uuid = identityUuid
         val identity="$uuid:$name"
         if (enrolledIdentity == identity) return
-        post("/v2/enroll", "{\"uuid\":${quoted(uuid)},\"name\":${quoted(name)},\"token\":${quoted(token())}}")
-        enrolledIdentity = identity
+        enrollmentRetry.beforeAttempt()
+        try {
+            val payload = "{\"uuid\":${quoted(uuid)},\"name\":${quoted(name)},\"token\":${quoted(token())}"
+            try { post("/v2/enroll", "$payload}") }
+            catch (failure: Exception) {
+                if (!failure.message.orEmpty().contains("ownership", true)) throw failure
+                val proof = enrollmentProof?.invoke() ?: error("Minecraft account verification is unavailable")
+                check(proof.matches(Regex("[a-f0-9]{40}"))) { "Minecraft account verification failed" }
+                post("/v2/enroll", "$payload,\"serverId\":${quoted(proof)}}")
+            }
+            enrolledIdentity = identity
+            enrollmentRetry.succeeded()
+        } catch (failure: Exception) {
+            val actionable = enrollmentRetry.failed(failure)
+            System.getLogger("ReConfig-Social").log(System.Logger.Level.WARNING,
+                "${actionable.message} (${failure.javaClass.simpleName})")
+            throw actionable
+        }
     }
 
     private fun get(path: String): String = request(path, "GET", null)
     private fun post(path: String, body: String): String = request(path, "POST", body)
     private fun request(path: String, method: String, body: String?): String {
-        val builder = HttpRequest.newBuilder(URI.create(URL + path)).timeout(Duration.ofSeconds(8))
+        check(System.currentTimeMillis() >= rateLimitedUntil) { "ReConfig service is temporarily busy. Please wait before trying again." }
+        require(path.startsWith("/v2/") && !path.contains("..")) { "Invalid social request" }
+        val builder = HttpRequest.newBuilder(URI.create(URL + path)).timeout(Duration.ofSeconds(15))
             .header("Authorization", "Bearer ${token()}").header("Content-Type", "application/json")
         builder.method(method, body?.let(HttpRequest.BodyPublishers::ofString) ?: HttpRequest.BodyPublishers.noBody())
-        val response=http.send(builder.build(), HttpResponse.BodyHandlers.ofString())
+        val response = try { http.send(builder.build(), HttpResponse.BodyHandlers.ofString()) }
+        catch (failure: java.io.IOException) { backOff(); throw IllegalStateException("Could not reach ReConfig. Check your connection and try again.", failure) }
+        catch (failure: InterruptedException) { Thread.currentThread().interrupt(); throw IllegalStateException("The request was interrupted. Please try again.", failure) }
         if(response.statusCode() !in 200..299){
             val json=runCatching{JsonParser.parseString(response.body()).asJsonObject}.getOrNull()
             if(response.statusCode()==429){
@@ -277,19 +419,28 @@ object ReConfigSocialService {
                 rateLimitedUntil=System.currentTimeMillis()+seconds*1000L
                 error("ReConfig service is temporarily busy. Try again in ${seconds}s.")
             }
+            if (response.statusCode() >= 500) {
+                backOff()
+                error("ReConfig is temporarily unavailable. Please try again shortly.")
+            }
+            if (response.statusCode() == 401) enrolledIdentity = ""
             val detail=json?.get("detail")?.asString?:json?.get("error")?.asString
-            error(detail?.takeUnless { it.contains("D1_ERROR", true) }?:"ReConfig service returned HTTP ${response.statusCode()}")
+            error(detail?.take(240)?.takeUnless { Regex("D1_ERROR|SQLITE|SELECT |INSERT |token_hash|stack trace", RegexOption.IGNORE_CASE).containsMatchIn(it) }?:"ReConfig service returned HTTP ${response.statusCode()}")
         }
         return response.body()
     }
 
-    private fun quoted(value: String): String = buildString {
-        append('"')
-        value.forEach { c -> when (c) { '\\' -> append("\\\\"); '"' -> append("\\\""); '\n' -> append("\\n"); '\r' -> append("\\r"); else -> append(c) } }
-        append('"')
-    }
+    private fun quoted(value: String): String = com.google.gson.Gson().toJson(value)
     private fun sha256(value:String)=MessageDigest.getInstance("SHA-256").digest(value.toByteArray()).joinToString(""){"%02x".format(it)}
-    private inline fun checked(title:String,block:()->Unit){runCatching(block).onFailure{Notifications.error(title,it.message?:"Network error")}}
+    private fun backOff() {
+        networkFailures = (networkFailures + 1).coerceAtMost(6)
+        rateLimitedUntil = System.currentTimeMillis() + (5_000L shl networkFailures).coerceAtMost(300_000L)
+    }
+    private fun friendlyFailure(failure: Throwable): String = when (failure) {
+        is IllegalStateException, is IllegalArgumentException -> failure.message ?: "The request could not be completed. Please try again."
+        else -> "The request could not be completed. Please try again."
+    }
+    private inline fun checked(title:String,block:()->Unit){runCatching(block).onFailure{Notifications.error(title,friendlyFailure(it))}}
 }
 
 @Composable
@@ -306,9 +457,26 @@ fun FriendsScreen() {
             SocialButton("plus", "Add friend") { openDialog() }
         }
         Spacer(Modifier.height(18.dp))
+        val invitations = ReConfigSocialService.invitationsSnapshot()
+        if (invitations.isNotEmpty()) {
+            LazyColumn(Modifier.fillMaxWidth().heightIn(max = 180.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(invitations, key = { it.id }) { invitation ->
+                    Row(Modifier.fillMaxWidth().reConfigGlass(LocalTheme.current.buttonShape, LocalTheme.current.componentBackground, LocalTheme.current.borderColor).padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("${invitation.sender} invited you to a server", modifier = Modifier.weight(1f), color = LocalTheme.current.textColor)
+                        SocialButton("right-arrow", "Join") {
+                            CommunityActions.connect?.invoke(invitation.address)
+                            ReConfigSocialService.dismissInvitation(invitation.id)
+                        }
+                        SocialButton("close", "Dismiss", subtle = true) { ReConfigSocialService.dismissInvitation(invitation.id) }
+                    }
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+        }
         if (ReConfigSocialState.friends.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("No friends yet — add another ReConfig user.", color = LocalTheme.current.textColorSecondary)
+                Text("No friends yet - add a Minecraft player.", color = LocalTheme.current.textColorSecondary)
             }
         } else LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             items(ReConfigSocialState.friends, key = { it.name.lowercase() }) { friend ->
@@ -394,13 +562,51 @@ private fun RowScope.Chat(name: String) {
     var replyingTo by remember(name) { mutableStateOf<ChatLine?>(null) }
     var emojiOpen by remember(name) { mutableStateOf(false) }
     val lines = ReConfigSocialState.chats.getOrPut(name) { mutableStateListOf() }
-    val listState = rememberLazyListState()
+    val listState = remember(name) { LazyListState() }
+    val scope = rememberCoroutineScope()
+    var sending by remember(name) { mutableStateOf(false) }
+    var scrollAfterSend by remember(name) { mutableStateOf(false) }
+    var previousNewest by remember(name) { mutableStateOf<Long?>(null) }
+    var previousCount by remember(name) { mutableStateOf(0) }
+    fun send(body: String, isEmoji: Boolean = false) {
+        if (sending || body.isBlank()) return
+        val originalDraft = draft
+        val originalReply = replyingTo
+        sending = true
+        ReConfigSocialState.send(name, body.trim(), replyingTo?.id) { success ->
+            scope.launch {
+                sending = false
+                if (success) {
+                    if (!isEmoji && draft == originalDraft) draft = ""
+                    if (replyingTo == originalReply) replyingTo = null
+                    emojiOpen = false
+                    scrollAfterSend = true
+                }
+            }
+        }
+    }
     // Keep entrance animations from replaying on polling or scrolling back.
     val enteredMessages = remember(name) { mutableSetOf<Long>() }
-    LaunchedEffect(name, lines.size) { if (lines.isNotEmpty()) listState.animateScrollToItem(lines.lastIndex) }
+    LaunchedEffect(name, lines.lastOrNull()?.id, lines.size, scrollAfterSend) {
+        val newest = lines.lastOrNull()?.id
+        val nearBottom = (listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0) >= previousCount - 3
+        val initial = previousNewest == null
+        if (lines.isNotEmpty() && (initial || scrollAfterSend || (newest != previousNewest && nearBottom))) {
+            listState.animateScrollToItem(lines.lastIndex)
+            scrollAfterSend = false
+        }
+        previousNewest = newest
+        previousCount = lines.size
+    }
     Column(Modifier.weight(1f).fillMaxHeight()) {
         Text(name, color = LocalTheme.current.textColor, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(12.dp))
+        if (ReConfigSocialService.hasOlderMessages(name)) {
+            SocialButton("text", if (ReConfigSocialService.isLoadingHistory(name)) "Loading history…" else "Load older messages", subtle = true) {
+                ReConfigSocialService.loadOlderMessages(name)
+            }
+            Spacer(Modifier.height(8.dp))
+        }
         LazyColumn(state=listState,modifier=Modifier.weight(1f).fillMaxWidth(),verticalArrangement=Arrangement.spacedBy(10.dp)) {
             items(lines,key={it.id}) { line ->
                 val entrance = remember(name, line.id) {
@@ -431,12 +637,12 @@ private fun RowScope.Chat(name: String) {
             }
         }
         replyingTo?.let { line -> Row(Modifier.fillMaxWidth().reConfigGlass(LocalTheme.current.buttonShape,LocalTheme.current.componentBackground,LocalTheme.current.borderColor).padding(8.dp),verticalAlignment=Alignment.CenterVertically){Column(Modifier.weight(1f)){Text("Replying to ${line.sender}",color=Accent,fontSize=11.sp);Text(line.text,color=LocalTheme.current.textColorSecondary,fontSize=12.sp)};SocialButton("close",""){replyingTo=null}};Spacer(Modifier.height(7.dp)) }
-        if(emojiOpen) EmojiPicker { token -> ReConfigSocialState.send(name, token, replyingTo?.id);replyingTo=null;emojiOpen=false }
+        if(emojiOpen) EmojiPicker { token -> send(token, isEmoji = true) }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
             SocialButton("smile", "") { emojiOpen=!emojiOpen }
-            Box(Modifier.weight(1f)) { SocialInput(draft, "Message $name", onSubmit={if(draft.isNotBlank()){ReConfigSocialState.send(name,draft.trim(),replyingTo?.id);draft="";replyingTo=null}}) { draft = it.take(500) } }
-            SocialButton("right-arrow", "Send") {
-                if (draft.isNotBlank()) { ReConfigSocialState.send(name, draft.trim(),replyingTo?.id); draft = "";replyingTo=null }
+            Box(Modifier.weight(1f)) { SocialInput(draft, "Message $name", onSubmit={send(draft)}) { draft = it.take(500) } }
+            SocialButton("right-arrow", if (sending) "Sending…" else "Send") {
+                send(draft)
             }
         }
     }

@@ -49,7 +49,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MixinAuditTest {
 
-    private static final String MOD_ID = "oneconfigv1";
+    private static final String MOD_ID = "reconfig_platform";
 
     private static final String OWN_CONFIG_PREFIX = "mixins.oneconfigv1";
 

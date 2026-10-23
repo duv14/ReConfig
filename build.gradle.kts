@@ -43,6 +43,7 @@ tasks.register<Sync>("buildAndCollect") {
     // version filter skips stale jars from earlier project versions
     from(bootstrapNodes.map { it.layout.buildDirectory.dir("libs") }) {
         include("*-${rootProject.version}.jar")
+        rename { "ReConfig-${rootProject.version}.jar" }
     }
     into(layout.buildDirectory.dir("libs"))
 

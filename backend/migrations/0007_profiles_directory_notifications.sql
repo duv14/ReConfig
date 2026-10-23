@@ -1,0 +1,14 @@
+CREATE TABLE IF NOT EXISTS profiles(user_uuid TEXT PRIMARY KEY,bio TEXT NOT NULL DEFAULT '',tag TEXT NOT NULL DEFAULT '',emoji TEXT NOT NULL DEFAULT '',public INTEGER NOT NULL DEFAULT 0,consented_at INTEGER,updated_at INTEGER NOT NULL);
+CREATE INDEX IF NOT EXISTS profiles_public_idx ON profiles(public,user_uuid);
+CREATE TABLE IF NOT EXISTS public_servers(id TEXT PRIMARY KEY,name TEXT NOT NULL,address TEXT NOT NULL,description TEXT NOT NULL DEFAULT '',icon TEXT NOT NULL DEFAULT '',players INTEGER,listed INTEGER NOT NULL DEFAULT 0);
+CREATE TABLE IF NOT EXISTS request_events(id INTEGER PRIMARY KEY AUTOINCREMENT,sender TEXT NOT NULL,recipient TEXT NOT NULL,created_at INTEGER NOT NULL);
+CREATE INDEX IF NOT EXISTS request_events_recipient_idx ON request_events(recipient,id);
+CREATE TRIGGER IF NOT EXISTS request_notification_insert AFTER INSERT ON requests BEGIN INSERT INTO request_events(sender,recipient,created_at) VALUES(NEW.sender,NEW.recipient,NEW.created_at); END;
+CREATE TABLE IF NOT EXISTS message_deletions(id INTEGER PRIMARY KEY AUTOINCREMENT,message_id INTEGER NOT NULL,sender TEXT NOT NULL,recipient TEXT NOT NULL,deleted_at INTEGER NOT NULL);
+CREATE INDEX IF NOT EXISTS message_deletions_sender_idx ON message_deletions(sender,id);
+CREATE INDEX IF NOT EXISTS message_deletions_recipient_idx ON message_deletions(recipient,id);
+CREATE TRIGGER IF NOT EXISTS message_deletion_sync AFTER DELETE ON messages_v2 BEGIN INSERT INTO message_deletions(message_id,sender,recipient,deleted_at) VALUES(OLD.id,OLD.sender,OLD.recipient,CAST(strftime('%s','now') AS INTEGER)*1000); END;
+CREATE INDEX IF NOT EXISTS requests_recipient_idx ON requests(recipient,sender);
+CREATE INDEX IF NOT EXISTS friendships_high_idx ON friendships(user_high,user_low);
+CREATE INDEX IF NOT EXISTS invitations_sender_recipient_idx ON invitations(sender,recipient,id);
+CREATE TABLE IF NOT EXISTS rate_limits(user_uuid TEXT NOT NULL,action TEXT NOT NULL,window INTEGER NOT NULL,count INTEGER NOT NULL,PRIMARY KEY(user_uuid,action));

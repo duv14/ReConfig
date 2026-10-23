@@ -40,6 +40,7 @@ object LegacyHudOffscreen {
 
     fun render(): Boolean {
         hasContent = false
+        if (HudManager.isHudRenderingSuppressed) return true
         if (failed) return false
         if (java.lang.Boolean.getBoolean("oneconfig.disable.legacyHudOffscreen")) return false
         if (HudManager.activeInstances.none { it is LegacyHud } && !CompatOverlayRenderer.hasHooks()) return true
@@ -127,7 +128,7 @@ object LegacyHudOffscreen {
     *///?}
 
     fun drawInto(canvas: org.jetbrains.skia.Canvas) {
-        if (!hasContent) return
+        if (HudManager.isHudRenderingSuppressed || !hasContent) return
         val s = offscreen.surface ?: return
         try {
             s.notifyContentWillChange(org.jetbrains.skia.ContentChangeMode.RETAIN)

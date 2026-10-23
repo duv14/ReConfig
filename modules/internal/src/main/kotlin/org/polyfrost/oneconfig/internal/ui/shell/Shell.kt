@@ -272,7 +272,7 @@ private fun PrivacyGate() {
                     Icon("lock", color = Accent, modifier = Modifier.width(25.dp).height(25.dp))
                     Text("Privacy before play", color = theme.textColor, fontSize = 23.sp, fontWeight = FontWeight.SemiBold)
                 }
-                Text("ReConfig stores your Minecraft identity, friends, messages, presence and invitations only when its cloud Social features are used. Local modules and HUD settings remain on your computer. You must accept the policy to continue.", color = theme.textColorSecondary, fontSize = 13.sp)
+                Text(PrivacyConsent.SUMMARY, color = theme.textColorSecondary, fontSize = 13.sp)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     PrivacyButton("Read More", false, PrivacyConsent::readMore)
                     androidx.compose.foundation.layout.Spacer(Modifier.width(10.dp))

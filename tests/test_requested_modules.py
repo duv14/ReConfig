@@ -20,15 +20,18 @@ class RequestedModulesTest(unittest.TestCase):
     def test_requested_huds_are_registered_with_editor(self):
         huds = source('minecraft/src/main/kotlin/org/polyfrost/oneconfig/internal/reconfig/modules/ModuleHuds.kt')
         for cls in ['TargetHud','SpeedometerHud','LightLevelHud','ClockHud','DurabilityAlertHud',
-                    'LowHealthHud','ProjectileCounterHud','SessionStatsHud','TotemPopHud','BrowserMusicHud']:
+                    'LowHealthHud','ProjectileCounterHud','SessionStatsHud','TotemPopHud']:
             self.assertIn(f'class {cls}', huds)
             self.assertIn(f'{cls}()', huds)
         self.assertIn('ReConfigHudVisibility.gameplayOverlayVisible()', huds)
+        visual = source('minecraft/src/main/kotlin/org/polyfrost/oneconfig/internal/reconfig/modules/VisualModuleHuds.kt')
+        self.assertIn('class BrowserMusicHud', visual)
+        self.assertIn('BrowserMusicHud()', huds)
 
     def test_qol_runtime_features_are_real_not_placeholder_cards(self):
         qol = source('minecraft/src/main/kotlin/org/polyfrost/oneconfig/internal/reconfig/modules/QualityOfLifeModules.kt')
-        self.assertIn('ItemTooltipCallback.EVENT.register', qol)
-        self.assertIn('DataComponents.CONTAINER', qol)
+        self.assertIn('TooltipComponentCallback.EVENT.register', qol)
+        self.assertIn('data as? ShulkerPreview', qol)
         self.assertIn('ClientboundEntityEventPacket', qol)
         self.assertIn('packet.eventId.toInt() == 35', qol)
         self.assertIn('sendChat(message)', qol)

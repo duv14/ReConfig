@@ -25,9 +25,9 @@ def test_every_module_hud_can_hide_its_background():
         assert 'toggle("show_background","Show background",true)' in module
     assert 'ModuleAccess.choice(moduleId, "show_background", "true")' in huds
     assert "if (showBackground()) roundedPanel" in huds
-    assert 'showBackground = ModuleAccess.choice(moduleId, "show_background", "true").toBoolean()' in text_huds
-    assert 'showBackground = ModuleAccess.choice("item_counter", "show_background", "true").toBoolean()' in text_huds
-    assert 'showBackground = ModuleAccess.choice("waila", "show_background", "true").toBoolean()' in text_huds
+    assert 'override fun hasBackground() = !OneConfigConfig.disableAllHudBackgrounds && ModuleAccess.choice(moduleId, "show_background", "true").toBoolean()' in text_huds
+    assert 'override fun hasBackground() = !OneConfigConfig.disableAllHudBackgrounds' in text_huds
+    assert 'class WailaHud : ModuleTextHud("waila"' in text_huds
 
 
 def test_hitbox_editor_has_explicit_close_and_escape():

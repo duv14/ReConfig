@@ -27,6 +27,7 @@ public class Mixin_ReConfigLiving {
             state.nameTag = Boolean.parseBoolean(ModuleAccess.choice("nick_hider", "hide_nickname", "true"))
                 ? null : Component.literal(ModuleAccess.choice("nick_hider", "nickname", "Player"));
         }
+        org.polyfrost.oneconfig.internal.reconfig.modules.ProfileNameTags.apply(entity, state, partial);
     }
     @Inject(method = "shouldShowName(Lnet/minecraft/world/entity/LivingEntity;D)Z", at = @At("HEAD"), cancellable = true, require = 1)
     private void reconfig$name(LivingEntity entity, double distance, CallbackInfoReturnable<Boolean> cir) {

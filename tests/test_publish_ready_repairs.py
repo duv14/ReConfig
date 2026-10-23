@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 import unittest
 
 
@@ -18,7 +19,8 @@ class PublishReadyRepairsTest(unittest.TestCase):
         self.assertIn("fun gameplayOverlayVisible() = !ShellState.uiOpen || HudManager.isEditorOpen", text_huds)
         self.assertIn("val isEditing: Boolean get() = isEditorOpen", manager)
         self.assertNotIn("val isEditing: Boolean get() = isEditorOpen || isConfigUiOpen", manager)
-        self.assertGreaterEqual(text_huds.count("ReConfigHudVisibility.gameplayOverlayVisible()"), 3)
+        normalized_huds = re.sub(r"\s+", " ", text_huds)
+        self.assertIn("override fun isAvailable() = ReConfigHudVisibility.gameplayOverlayVisible() && ModuleHuds.inWorld && ModuleAccess.enabled(moduleId)", normalized_huds)
         self.assertIn("ReConfigHudVisibility.gameplayOverlayVisible()", visual_huds)
 
     def test_social_replies_and_custom_emoji_assets_are_wired_end_to_end(self):

@@ -279,6 +279,7 @@ public final class org/polyfrost/oneconfig/api/hud/v1/HudManager {
 	public static final fun invalidate ()V
 	public final fun isEditing ()Z
 	public final fun isEditorOpen ()Z
+	public final fun isHudRenderingSuppressed ()Z
 	public static final fun markProviderKnown (Lorg/polyfrost/oneconfig/api/hud/v1/Hud;)V
 	public static final fun mergeGroupOf (Lorg/polyfrost/oneconfig/api/hud/v1/Hud;)Ljava/util/List;
 	public final fun onEditorScreenRemoved ()V

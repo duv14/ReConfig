@@ -89,9 +89,12 @@ object HudManager {
     @Volatile var isEditorOpen = false
         private set
 
-    /** Set by the configuration UI for lifecycle tracking, never for gameplay-HUD previews. */
+    /** Set by the configuration UI; only the dedicated HUD editor may draw HUDs above it. */
     @ApiStatus.Internal
     @Volatile @JvmField var isConfigUiOpen = false
+
+    /** Suppresses content, merged backgrounds and cached layers throughout the normal menu. */
+    val isHudRenderingSuppressed: Boolean get() = isConfigUiOpen && !isEditorOpen
 
     @Volatile @JvmField var guiScreenWidth: Float = 960f
     @Volatile @JvmField var guiScreenHeight: Float = 540f
@@ -518,6 +521,7 @@ object HudManager {
 
     /** Everything [shouldDraw] checks apart from the HUD's own hidden flag */
     private fun isShown(hud: Hud): Boolean {
+        if (isHudRenderingSuppressed) return false
         if (hud is LegacyHudMarker) return false
         if (isEditing) return true
         if (!hud.isAvailable()) return false
@@ -703,6 +707,7 @@ object HudManager {
      */
     @ApiStatus.Internal
     fun drawMergedBackgrounds(ctx: RenderContext) {
+        if (isHudRenderingSuppressed) return
         for (group in frameGroups) {
             try {
                 group.draw(ctx)
@@ -722,6 +727,7 @@ object HudManager {
         key = key * 31L + (if (isGuiHidden) 1 else 0)
         key = key * 31L + (if (overrideShowInScreens) 1 else 0)
         key = key * 31L + (if (isEditing) 1 else 0)
+        key = key * 31L + (if (isHudRenderingSuppressed) 1 else 0)
         key = key * 31L + (if (inWorld) 1 else 0)
         key = key * 31L + targetPixelWidth
         key = key * 31L + targetPixelHeight
@@ -787,6 +793,7 @@ object HudManager {
 
     @ApiStatus.Internal
     fun render(ctx: RenderContext, screenWidth: Float, screenHeight: Float) {
+        if (isHudRenderingSuppressed) { preparedFrameValid = false; return }
         val scale = Platform.compatibility().options().guiScale
 
         val prepared = preparedFrameValid

@@ -60,7 +60,7 @@ private object ModuleSearchSelection { var pending by mutableStateOf<ClientModul
 
 @Composable internal fun ReConfigModuleSearchResults(query:String) {
     val normalized=query.trim()
-    val matches=remember(normalized){if(normalized.isEmpty()) emptyList() else ModuleCatalog.modules.filter{module->module.name.contains(normalized,true)||module.description.contains(normalized,true)||module.id.replace('_',' ').contains(normalized,true)}}
+    val matches=remember(normalized){if(normalized.isEmpty()) emptyList() else ModuleCatalog.modules.filter{module->module.name.contains(normalized,true)||module.description.contains(normalized,true)||module.id.replace('_',' ').contains(normalized,true)||module.settings.any{it.title.contains(normalized,true)}}}
     if(matches.isEmpty())return
     Column(verticalArrangement=Arrangement.spacedBy(8.dp)){
         Text("RECONFIG MODULES",color=LocalTheme.current.textColorSecondary,fontSize=11.sp,fontWeight=FontWeight.Medium)
@@ -115,6 +115,7 @@ private object ModuleSearchSelection { var pending by mutableStateOf<ClientModul
         Spacer(Modifier.height(18.dp))
         LazyColumn(verticalArrangement=Arrangement.spacedBy(10.dp)) {
             if(module.id=="crosshair") item { CrosshairPreview(module) }
+            if(module.id=="browser_music_hud") item { LocalMediaControls() }
             items(module.settings,key={it.id}){SettingRow(module,it)}
             if(module.id=="waypoints") item { WaypointManager() }
             if(module.id=="hitbox") item { HitboxCategoryEditor(back) }
@@ -164,7 +165,13 @@ private fun settingHint(s:ModuleSetting,v:String)=when(s.kind){SettingKind.NUMBE
 @Composable fun ReConfigSettingsScreen(){
     // Use the framework's native config renderer so ReConfig preferences receive
     // the same controls, spacing, search metadata and persistence as every config.
-    Preferences()
+    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text("Privacy & Social", color = LocalTheme.current.textColor, fontWeight = FontWeight.Medium)
+            GlassButton("View Privacy Policy", "lock", PrivacyConsent::readMore)
+        }
+        Box(Modifier.weight(1f)) { Preferences() }
+    }
 }
 
 private fun saveUiConfig(){runCatching{OneConfigConfig.INSTANCE?.save()}}

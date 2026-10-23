@@ -26,6 +26,7 @@ object CompatOverlayRenderer {
 
     @JvmStatic
     fun render(ctx: GuiGraphicsExtractor) {
+        if (HudManager.isHudRenderingSuppressed) return
         if (hooks.isEmpty()) return
         for (hook in hooks) {
             try {

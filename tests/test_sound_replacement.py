@@ -33,7 +33,7 @@ public double getX(){return x;} public double getY(){return y;} public double ge
 public float reconfig$rawVolume(){return volume;} public float reconfig$rawPitch(){return pitch;}
 }''',
             'org/polyfrost/oneconfig/internal/reconfig/ModuleAccess.java': '''package org.polyfrost.oneconfig.internal.reconfig;
-public class ModuleAccess { public static boolean active=true; public static String disabled=""; public static boolean enabled(String id){return active;} public static String choice(String m,String s,String f){return s.equals(disabled)?"false":f;} }''',
+public class ModuleAccess { public static boolean active=true; public static String disabled=""; public static boolean enabled(String id){return active;} public static String choice(String m,String s,String f){return s.equals(disabled)?"false":f;} public static float number(String m,String s,float f){return f;} }''',
             'SoundTest.java': '''import net.minecraft.client.resources.sounds.*;
 import net.minecraft.resources.Identifier;
 import org.polyfrost.oneconfig.internal.reconfig.modules.BetterSounds;
@@ -66,7 +66,8 @@ if(BetterSounds.replace(shield)!=shield)throw new AssertionError("module toggle 
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text(content)
             source = ROOT / 'minecraft/src/main/java/org/polyfrost/oneconfig/internal/reconfig/modules/BetterSounds.java'
-            subprocess.run(['java','-m','jdk.compiler/com.sun.tools.javac.Main','-d',directory,*map(str,root.rglob('*.java')),str(source)],check=True,capture_output=True,text=True)
+            effect_math = ROOT / 'minecraft/src/main/java/org/polyfrost/oneconfig/internal/reconfig/modules/EffectMath.java'
+            subprocess.run(['java','-m','jdk.compiler/com.sun.tools.javac.Main','-d',directory,*map(str,root.rglob('*.java')),str(effect_math),str(source)],check=True,capture_output=True,text=True)
             result = subprocess.run(['java','-cp',directory,'SoundTest'],capture_output=True,text=True)
             self.assertEqual(result.returncode,0,result.stderr)
 

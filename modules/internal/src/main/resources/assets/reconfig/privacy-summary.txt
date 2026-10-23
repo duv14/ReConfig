@@ -1,0 +1,20 @@
+ReConfig privacy summary — policy version 2
+Updated 20 October 2026
+Full policy: https://duv14.com/policy
+Contact: therealduv14@gmail.com
+
+Local module settings, HUD positions, keybinds, themes, waypoints, policy acceptance and caches are stored on your computer. The Music HUD reads supported Spotify media-session metadata locally; it does not upload listening activity or inspect arbitrary browser titles. Reliable YouTube identification is not provided in this release.
+
+After policy acceptance, social enrollment, presence and notification checks can run during gameplay even with Friends closed. The Cloudflare Worker/D1 service processes Minecraft username/UUID, hashes of random ReConfig authentication tokens, friend requests, friendships, messages, replies, timestamps, deletion records, presence and hashed server information. Minecraft ownership proof sends identity and a random serverId to the Worker, never your Minecraft access token or Microsoft password.
+
+Profiles are private by default. Publishing your bio, tag and bundled emoji requires separate explicit consent. General policy acceptance does not publish your profile. A server invitation shares the full address with the invited friend. The public directory contains operator-approved listings, not private presence or invitation addresses.
+
+Messages are not end-to-end encrypted. Do not send secrets. Removing a friend does not delete messages. Making a profile private hides publication but does not erase saved account data. There is no automatic retention-expiry/account-deletion scheduler. Message deletion removes its active body; synchronization tombstones and recipients' copies may remain.
+
+Providers include Cloudflare Workers/D1, Netlify, Microsoft/Mojang, PlayerDB, Ashcon, MCHeads and GitHub. Profile/skin requests and hosting can expose identity/network metadata to those providers, including processing outside your country. Support reports and logs contain what you share. This notice does not guarantee security or a particular international-transfer arrangement.
+
+ReConfig does not sell personal data or use behavioural advertising. Optional profile publication relies on consent; requested service operation, legitimate operational/security interests and applicable legal obligations support other purposes where relevant law applies.
+
+Email privacy requests to therealduv14@gmail.com with your Minecraft name/UUID, never tokens or passwords. Depending on applicable law, you may request access, correction, deletion, restriction, portability, object, withdraw consent and complain to a data-protection authority. Identity verification may be needed. Requests require operator handling.
+
+Young players should ask a parent/guardian before sharing personal information. No age-verification or parental-consent workflow is implemented. Follow applicable parental-authorization requirements. Closing Minecraft stops future requests; uninstalling may leave local settings and existing server data behind. Policy version changes require renewed acceptance.

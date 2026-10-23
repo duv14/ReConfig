@@ -1,0 +1,39 @@
+{
+  "sources": [
+    {
+      "type": "minecraft:single",
+      "resource": "reconfig:font/tags/rose",
+      "sprite": "reconfig:tag_emojis/rose"
+    },
+    {
+      "type": "minecraft:single",
+      "resource": "reconfig:font/tags/pray",
+      "sprite": "reconfig:tag_emojis/pray"
+    },
+    {
+      "type": "minecraft:single",
+      "resource": "reconfig:font/tags/cute",
+      "sprite": "reconfig:tag_emojis/cute"
+    },
+    {
+      "type": "minecraft:single",
+      "resource": "reconfig:font/tags/kiss",
+      "sprite": "reconfig:tag_emojis/kiss"
+    },
+    {
+      "type": "minecraft:single",
+      "resource": "reconfig:font/tags/kiss-closed",
+      "sprite": "reconfig:tag_emojis/kiss-closed"
+    },
+    {
+      "type": "minecraft:single",
+      "resource": "reconfig:font/tags/sob-blue",
+      "sprite": "reconfig:tag_emojis/sob-blue"
+    },
+    {
+      "type": "minecraft:single",
+      "resource": "reconfig:font/tags/sob",
+      "sprite": "reconfig:tag_emojis/sob"
+    }
+  ]
+}

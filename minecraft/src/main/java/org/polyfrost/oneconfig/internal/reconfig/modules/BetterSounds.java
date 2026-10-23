@@ -43,7 +43,7 @@ public final class BetterSounds {
             super(Identifier.fromNamespaceAndPath("reconfig", "gameplay." + category), original.getSource(), SoundInstance.createUnseededRandom());
             // At play(HEAD), getVolume()/getPitch() would dereference an unresolved Sound.
             AbstractSoundAccessor raw = (AbstractSoundAccessor) original;
-            volume = raw.reconfig$rawVolume();
+            volume = raw.reconfig$rawVolume() * EffectMath.clamp(ModuleAccess.number("better_sounds", category + "_volume", 100), 0, 100) / 100f;
             pitch = raw.reconfig$rawPitch();
             x = original.getX();
             y = original.getY();

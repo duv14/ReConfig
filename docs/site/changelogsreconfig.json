@@ -1,0 +1,16 @@
+{
+  "entries": [
+    {
+      "imageUrl": null,
+      "title": "ReConfig 3.3.0 — Profiles and HUD polish",
+      "description": "Your profile now has an articulated skin preview, Minecraft-font nametag, five-character tag editor, editable bio, emoji controls and separate public-profile search. HUD labels and merged backgrounds no longer add unwanted dark shadows.",
+      "date": "2026-10-22"
+    },
+    {
+      "imageUrl": null,
+      "title": "Build and verification",
+      "description": "The Fabric build and Gradle checks pass, including the mixin audit. Source and backend regression suites pass. Running Minecraft verification remains required. Five-character tags need the included Worker update.",
+      "date": "2026-10-22"
+    }
+  ]
+}

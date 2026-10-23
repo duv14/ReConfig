@@ -222,6 +222,10 @@ public class OneConfigConfig extends Config {
     )
     public static float hudDragUiOpacity = 0.60f;
 
+    @Switch(title = "Disable all HUD backgrounds", subcategory = "HUD",
+        description = "Hide HUD panels without changing individual background preferences.")
+    public static boolean disableAllHudBackgrounds = false;
+
     @Slider(
         title = "oneconfig.preferences.page_opacity.title",
         titleTranslation = true,

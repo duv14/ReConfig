@@ -1,45 +1,26 @@
-# ReConfig 1.21.11
+# ReConfig 3.3.0
 
-Standalone Fabric 1.21.11 client mod by **duv14**, built from the OneConfig v1 UI foundation and requiring no separate OneConfig installation.
+Standalone Fabric client mod for Minecraft 1.21.11 by **duv14**, adapted from OneConfig by Polyfrost and contributors. No separate OneConfig mod is required. Fabric API must be installed.
 
-## 3.2.0 stability release
+## Profiles and HUD update
 
-This version repairs HUD visibility, Fullbright, Custom Crosshair, Freelook,
-friends/messages polling, database-limit handling, and the native Compose/Skia
-startup crash. It also adds Modrinth release documentation. See `CHANGELOG.md`,
-`PRIVACY.md`.
+- Profiles opens on your own editable profile, with a larger articulated skin preview, idle/walk/wave controls and a Minecraft-font nametag.
+- The read-only account name sits beside a tag field limited to five letters/numbers; the bio and emoji controls update the preview immediately.
+- An animated search control opens a dedicated public-profile search view with profile cards.
+- Saved tags and selected emoji render beside live Minecraft nametags. Your own tag can appear in third person; other ReConfig clients see it only when your profile is public.
+- Profile publication remains a separate, explicit opt-in. Private profiles are hidden from search.
+- HUD labels no longer force text shadows, and custom text cards respect merged-background ownership to avoid drawing dark backgrounds twice.
 
-The v29 update added the requested sounds, Zoom, HUDs, brightness/movement/privacy
-controls, and integrated Hitbox Categories / Team Highlight editors. It also
-changes Freelook mouse capture. Read `STATUS-v29.md` for controls, implementation
-details and validation limits. The v28 duplicate-license packaging fix is retained.
-The repository CI builds only the supported 1.21.11 release task. Fabric API
-must still be installed separately; the dependency declaration does not bundle it.
-
-## What changed
-
-- ReConfig branding and logo
-- Bricolage Grotesque typography
-- ReConfig open, close, and notification sounds
-- PolyGlass Dark forced as the interface theme
-- Social → Friends and Messages, with explicit request acceptance, skin heads, status, invitations, and cross-server chat
-- Quality of Life → Modules, with the supplied SVG icons and retained fallback artwork
-- Miscellaneous → Settings
-- Updates → Changelog, loaded from `https://duv14.com/changelogsreconfig` with an offline cache
-- Persistent enable state, controls-style keybind capture, sliders, choices, and a full color picker
-- Hardcoded backend: `https://reconfig-chat.duv14-reconfig-api.workers.dev`
-- Compose/Skia and Fabric Language Kotlin nested into the distributable
-
-## Build
-
-Use Java 21:
+## Build and install
 
 ```bat
-gradlew.bat buildAndCollect
+gradlew.bat clean buildAndCollect check
 ```
 
-The standalone Fabric 1.21.11 jar is written to `build\libs`. Only place that ReConfig jar in the Minecraft `mods` folder; do not install OneConfig separately. See `BUILDING.md` for backend migration and troubleshooting commands.
+Use JDK 21. The built mod is `build\libs\ReConfig-3.3.0.jar`. See [BUILD-INSTRUCTIONS.md](BUILD-INSTRUCTIONS.md), [CHANGELOG.md](CHANGELOG.md), and [VERIFICATION.md](VERIFICATION.md).
+
+The hardcoded social backend is `https://reconfig-chat.duv14-reconfig-api.workers.dev`. Five-character tags require deploying the included Worker update; migration 0007 does not need to be repeated if already applied. See [backend/README.md](backend/README.md). Privacy hosting source is under `docs/site/policy/`.
 
 ## License
 
-ReConfig's adapted program is distributed under GPL-3.0-only using the GPL option in OneConfig's Additional Terms v1.1. Original upstream licenses/notices and third-party licenses remain intact. See `LICENSE-RECONFIG.txt`, `LICENSE`, `ATTRIBUTIONS.md`, and `RELEASE-CHECKLIST.md`. Publish the exact corresponding source alongside your release.
+ReConfig is distributed under GPL-3.0-only using the GPL option in OneConfig's Additional Terms v1.1. Preserve all upstream and third-party notices. See `LICENSE-RECONFIG.txt`, `LICENSE`, `ATTRIBUTIONS.md`, and `THIRD_PARTY_NOTICES.md`. Publish the corresponding source alongside the JAR.

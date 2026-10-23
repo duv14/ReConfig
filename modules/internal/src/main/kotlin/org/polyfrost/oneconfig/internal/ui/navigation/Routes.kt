@@ -3,6 +3,8 @@
  */
 package org.polyfrost.oneconfig.internal.ui.navigation
 
+import org.polyfrost.oneconfig.internal.ui.navigation.graph.YourProfileGraph
+import org.polyfrost.oneconfig.internal.ui.navigation.graph.PublicServersGraph
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -35,7 +37,9 @@ val NavigationGroups = listOf(
             id = "messages",
             icon = "text",
             route = MessagesGraph
-        )
+        ),
+        NavigationRoute(id = "profiles", icon = "profiles", route = YourProfileGraph),
+        NavigationRoute(id = "public servers", icon = "qol", route = PublicServersGraph)
     ),
     NavigationGroup(
         id = "Quality of Life",
@@ -60,3 +64,6 @@ fun searchPlaceholder(destination: NavDestination?): String {
         }
     return if (section != null) "Search ${section.id}..." else "Search..."
 }
+
+
+

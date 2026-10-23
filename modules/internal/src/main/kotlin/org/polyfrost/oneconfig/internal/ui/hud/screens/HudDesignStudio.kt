@@ -406,6 +406,7 @@ private fun hitTestAnchorPoint(
 }
 
 private fun drawHudContents(sk: org.jetbrains.skia.Canvas, mcToScreen: Float) {
+    if (HudManager.isHudRenderingSuppressed) return
     // HUDs fused with a neighbour do not paint their own background so the merged shapes are laid down
     // here first just like the in-game HUD pass
     sk.save()

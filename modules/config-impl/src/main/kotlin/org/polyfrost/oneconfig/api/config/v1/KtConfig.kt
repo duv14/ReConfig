@@ -55,7 +55,11 @@ open class KtConfig(id: String, title: String, category: Category, icon: String?
         return p
     }
 
-    final override fun makeTree(): Tree = pendingTree ?: Tree.tree(id)
+    final override fun makeTree(): Tree = Tree.tree(id).also { out ->
+        // Backend registration can consume its input tree when an ID is already registered.
+        // Keep the delegate schema for subsequent profile rebinds.
+        pendingTree?.map?.values?.forEach { out.put(it) }
+    }
 
     /**
      * return the property with the given id by a kotlin property reference
@@ -609,10 +613,14 @@ open class KtConfig(id: String, title: String, category: Category, icon: String?
     }
 
     private class PropertyDelegate<T : Any>(val property: Property<T>) : ReadWriteProperty<KtConfig, T> {
-        override operator fun getValue(thisRef: KtConfig, property: KProperty<*>): T = this.property.get() as T
+        @Suppress("UNCHECKED_CAST")
+        private fun boundProperty(thisRef: KtConfig, key: KProperty<*>): Property<T> =
+            (thisRef.tree?.getProp(key.name) as? Property<T>) ?: property
+
+        override operator fun getValue(thisRef: KtConfig, property: KProperty<*>): T = boundProperty(thisRef, property).get() as T
 
         override operator fun setValue(thisRef: KtConfig, property: KProperty<*>, value: T) {
-            this.property.set(value)
+            boundProperty(thisRef, property).set(value)
         }
     }
 }

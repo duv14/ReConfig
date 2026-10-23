@@ -380,6 +380,7 @@ object SkiaCtx {
     *///? }
 
     fun blitHud(guiGraphics: GuiGraphicsExtractor) {
+        if (org.polyfrost.oneconfig.api.hud.v1.HudManager.isHudRenderingSuppressed) return
         val rt = hudTarget ?: return
         val w = rt.width
         val h = rt.height

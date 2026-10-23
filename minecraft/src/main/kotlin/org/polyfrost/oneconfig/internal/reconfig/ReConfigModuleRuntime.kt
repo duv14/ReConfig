@@ -89,14 +89,14 @@ object ReConfigModuleRuntime {
             mc.options.keySprint.setDown(sprintLatched)
         } else {
             if (sprintWasEnabled) sprintLatched = false
-            if (!inputBlocked) mc.options.keySprint.setDown(sprintPhysical)
+            if (sprintWasEnabled) mc.options.keySprint.setDown(!inputBlocked && sprintPhysical)
         }
         if (sneak && !inputBlocked) {
             if (sneakPhysical && !sneakPhysicalWasDown) sneakLatched = !sneakLatched
             mc.options.keyShift.setDown(sneakLatched)
         } else {
             if (sneakWasEnabled) sneakLatched = false
-            if (!inputBlocked) mc.options.keyShift.setDown(sneakPhysical)
+            if (sneakWasEnabled) mc.options.keyShift.setDown(!inputBlocked && sneakPhysical)
         }
         sprintPhysicalWasDown = sprintPhysical
         sneakPhysicalWasDown = sneakPhysical
