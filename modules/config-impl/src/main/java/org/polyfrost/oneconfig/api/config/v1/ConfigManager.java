@@ -680,9 +680,14 @@ public final class ConfigManager {
             boolean favorite = isFavoriteProfile(profile);
             String icon = profileIcon(profile);
             if (activeProfile) active.saveAll();
+            // Windows keeps a watched directory open. Release our own handle
+            // before moving it; the new active manager installs its own watcher.
+            boolean watching = activeProfile && active.backend.hasWatcher();
+            if (watching) active.backend.closeWatcher();
             try {
                 Files.move(oldPath, newPath);
             } catch (IOException e) {
+                if (watching) active.withWatcher();
                 throw new IllegalStateException("Failed to rename profile: " + profile, e);
             }
             if (favorite) {

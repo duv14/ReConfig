@@ -72,5 +72,6 @@
         ,"reconfig.Mixin_ComboDamage"
         ,"reconfig.Mixin_ReConfigHitboxes"
         ,"reconfig.Mixin_ReConfigTeamHighlight"
+        ,"reconfig.Mixin_ReConfigScoreboard"
     ]
 }

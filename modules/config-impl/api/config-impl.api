@@ -784,6 +784,7 @@ public class org/polyfrost/oneconfig/api/config/v1/backend/impl/FileBackend : or
 	public fun load0 (Ljava/nio/file/Path;Ljava/lang/String;)Lorg/polyfrost/oneconfig/api/config/v1/Tree;
 	protected static fun mkdirs (Ljava/nio/file/Path;)Ljava/nio/file/Path;
 	protected static fun read (Ljava/nio/file/Path;)Ljava/lang/String;
+	protected fun requestUpdate (Ljava/lang/String;)V
 	public fun save0 (Lorg/polyfrost/oneconfig/api/config/v1/Tree;)Z
 	protected static fun write (Ljava/nio/file/Path;Ljava/lang/String;)V
 }

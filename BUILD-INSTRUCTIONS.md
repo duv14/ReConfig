@@ -1,4 +1,4 @@
-# Building ReConfig 3.3.0
+# Building ReConfig 3.3.1
 
 Use a 64-bit JDK 21. Extract the source archive to a writable folder and open a terminal in the extracted project root. The Gradle wrapper downloads its dependencies on the first run.
 
@@ -6,11 +6,20 @@ Use a 64-bit JDK 21. Extract the source archive to a writable folder and open a 
 gradlew.bat clean buildAndCollect check
 ```
 
-Wait for `BUILD SUCCESSFUL`. The standalone mod is collected at `build\libs\ReConfig-3.3.0.jar`. This exact command passed during local verification on 22 October 2026, including the corrected Minecraft mixin audit.
+Wait for `BUILD SUCCESSFUL`. Install the collected standalone mod at `build\libs\ReConfig-3.3.1.jar`. Use this collected JAR: intermediate JARs under bootstrap or minecraft have not passed through private runtime packaging.
 
 ## Install
 
-Use Minecraft 1.21.11, Fabric Loader and Fabric API compatible with 1.21.11 (metadata requires Fabric API >=0.141.5+1.21.11). Put the ReConfig JAR in the instance's `mods` folder. A separate OneConfig installation is not required. The Compose/Skiko native runtime libraries are retained because this UI renderer requires them.
+Use Minecraft 1.21.11, Java 21, Fabric Loader, Fabric API >=0.141.5+1.21.11 and Fabric Language Kotlin >=1.13.8+kotlin.2.3.0. Put the ReConfig JAR in the instance's `mods` folder, replacing the previous ReConfig JAR, then restart Minecraft. A separate OneConfig installation is not required. The Compose/Skiko native runtime libraries are retained because this UI renderer requires them.
+
+## New controls
+
+- Modules -> Projectile Counter: keep Pearls and Wind charges enabled and disable the other types for a two-type counter.
+- Modules -> Potion Effects: choose names, levels, timers, empty-state behavior and background. Open Edit HUD to position and scale it.
+- Modules -> Hide Scoreboard: enable to hide the sidebar; disable to restore it. A keybind is optional.
+- FPS Boost caps render/entity distances and restores the previous values when disabled. It is not a guaranteed FPS increase or a replacement for a performance mod.
+
+This update changes the client only. Its UI/HUD fixes require no Worker redeployment or database migration.
 
 ## Updated social backend
 

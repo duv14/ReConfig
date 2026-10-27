@@ -1,5 +1,18 @@
 # ReConfig changelog
 
+## 3.3.1 — UI compatibility and HUD controls
+
+- Isolated ReConfig's Compose/AndroidX runtime and its nested library IDs to fix UI startup when a different Compose Multiplatform version is installed. Kept JNI packages intact and required the matching native renderer ABI.
+- Stopped bundling stale dependency JARs from previous builds.
+- Added individual projectile-counter switches for arrows, ender pearls, wind charges, snowballs and eggs, with optional zero-count hiding.
+- Improved the movable Potion Effects HUD with native icons, translated names, levels, remaining time, infinite-duration support and expiry highlighting. Added display and empty-state controls; retained the existing HUD position ID.
+- Added Hide Scoreboard with an optional keybind. It affects the local vanilla sidebar only.
+- Corrected custom HUD refresh intervals, avoided unnecessary disabled-HUD sampling and repeated linear module/setting searches, and removed unused effect-text generation.
+- FPS Boost no longer raises an already-lower render or entity distance. No measured FPS increase is claimed for this release.
+- Released the active profile's directory watcher before renaming it to avoid Windows access-denied failures.
+- Ignored duplicate notifications of ReConfig's own config writes so they cannot reload old saved values over newer edits during profile changes. External file edits still reload.
+- No backend deployment or migration is required for these changes.
+
 ## 3.3.0 — ReConfig feature and polish update
 
 ### Profiles and HUD polish

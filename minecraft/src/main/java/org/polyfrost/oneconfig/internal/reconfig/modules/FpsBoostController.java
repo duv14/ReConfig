@@ -22,8 +22,8 @@ public final class FpsBoostController {
             applied = true;
         }
         if (enabled) {
-            int chunks = Math.round(ModuleAccess.number("fps_boost", "chunk_distance", 8));
-            double entities = ModuleAccess.number("fps_boost", "entity_distance", 75) / 100.0;
+            int chunks = HudOptions.chunkCap(previousChunks, Math.round(ModuleAccess.number("fps_boost", "chunk_distance", 8)));
+            double entities = HudOptions.entityCap(previousEntities, ModuleAccess.number("fps_boost", "entity_distance", 75));
             if (minecraft.options.renderDistance().get() != chunks) minecraft.options.renderDistance().set(chunks);
             if (Math.abs(minecraft.options.entityDistanceScaling().get() - entities) > 0.001) minecraft.options.entityDistanceScaling().set(entities);
         } else if (applied) {

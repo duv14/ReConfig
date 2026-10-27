@@ -20,6 +20,7 @@ fun plugin(provider: Provider<PluginDependency>): Provider<String> = provider.ma
 fun plugin(supplier: ProviderConvertible<PluginDependency>): Provider<String> = plugin(supplier.asProvider())
 
 dependencies {
+    implementation("com.google.code.gson:gson:2.11.0")
     // Mirroring https://github.com/EssentialGG/essential-gradle-toolkit/blob/master/build.gradle.kts
     implementation("org.ow2.asm:asm-commons:9.8")
     implementation("com.google.guava:guava:33.0.0-jre")

@@ -3,7 +3,7 @@
   "id": "${mod_id}",
   "version": "${mod_version}",
   "name": "ReConfig",
-  "description": "ReConfig by duv14. Standalone client with social features and modules, based on OneConfig by Polyfrost and contributors.",
+  "description": "ReConfig by duv14. Fabric client mod with social features and modules, based on OneConfig by Polyfrost and contributors.",
   "authors": [
     "duv14",
     "Polyfrost (original UI source)"

@@ -45,9 +45,11 @@ public class FileBackend extends Backend {
     private static final Charset CHARSET = StandardCharsets.UTF_8;
     public final Path folder;
     private final Map<String, FileSerializer<String>> serializers = new HashMap<>(4);
-    private boolean hasWatcher = false;
-    private WatchService watcherService = null;
+    private volatile boolean hasWatcher = false;
+    private volatile WatchService watcherService = null;
     private final Set<String> selfEvents = ConcurrentHashMap.newKeySet();
+    private final Map<String, String> ownWrites = new ConcurrentHashMap<>();
+    private final Set<String> writing = ConcurrentHashMap.newKeySet();
 
     @SafeVarargs
     public FileBackend(Path folder, FileSerializer<String>... serializers) {
@@ -102,6 +104,7 @@ public class FileBackend extends Backend {
                 try {
                     WatchKey key = service.take();
                     for (WatchEvent<?> event : key.pollEvents()) {
+                        if (!hasWatcher || watcherService != service) break;
                         if (event.kind() == StandardWatchEventKinds.OVERFLOW) {
                             continue;
                         }
@@ -140,8 +143,12 @@ public class FileBackend extends Backend {
                     }
                 }
             }
-            hasWatcher = false;
-            watcherService = null;
+            synchronized (FileBackend.this) {
+                if (watcherService == service) {
+                    hasWatcher = false;
+                    watcherService = null;
+                }
+            }
             try {
                 service.close();
             } catch (IOException e) {
@@ -171,6 +178,23 @@ public class FileBackend extends Backend {
 
     public void dodge(String fileName) {
         if (fileName != null) selfEvents.add(fileName);
+    }
+
+    @Override
+    protected void requestUpdate(String id) {
+        // An atomic save may produce several notifications. Consuming only one
+        // event lets a delayed duplicate reload old disk values over new edits.
+        // Keep the actual saved contents until a genuinely external edit differs.
+        if (writing.contains(id)) return;
+        Path path = folder.resolve(id);
+        if (Files.isRegularFile(path)) {
+            String disk = read(path);
+            if (writing.contains(id) || disk.equals(ownWrites.get(id))) return;
+        }
+        // Once an external value is accepted, restoring the old saved bytes is
+        // another external edit, not a delayed notification of our old write.
+        ownWrites.remove(id);
+        super.requestUpdate(id);
     }
 
     public Tree load0(Path p, String id) throws Exception {
@@ -207,8 +231,15 @@ public class FileBackend extends Backend {
             LOGGER.error("No serializer found for saving file {}", p);
             return false;
         }
-        write(p, serializer.serialize(tree));
+        String serialized = serializer.serialize(tree);
+        writing.add(tree.getID());
         dodge(p.getFileName().toString());
+        try {
+            write(p, serialized);
+            ownWrites.put(tree.getID(), serialized);
+        } finally {
+            writing.remove(tree.getID());
+        }
         return true;
     }
 
@@ -216,8 +247,9 @@ public class FileBackend extends Backend {
     protected boolean delete0(@NotNull Tree tree) throws Exception {
         Path p = folder.resolve(tree.getID());
         if (!Files.exists(p)) return false;
-        Files.delete(p);
         dodge(p.getFileName().toString());
+        Files.delete(p);
+        ownWrites.remove(tree.getID());
         return true;
     }
 

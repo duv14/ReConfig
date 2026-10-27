@@ -1,3 +1,20 @@
+# ReConfig 3.3.1 verification — 27 October 2026
+
+- `gradlew.bat buildAndCollect check` passed in 1m 11s (120 tasks). This includes the Minecraft mixin audit and API checks. The final JUnit reports contain 205 tests, zero failures/errors/skips.
+- All 69 Python source regression tests passed. The HUD policy harness covers 16 projectile-filter, timer, editor-visibility and render-cap behaviors.
+- The new config-watcher regression was observed failing before each repair, then passing: duplicate own-save notifications preserve newer edits, genuinely external edits reload, and restoring the original saved bytes after an external edit reloads too. The active-profile rename releases its Windows directory watcher before moving the directory.
+- Recursively checked the final JAR and nested archive CRCs. Compose/AndroidX classes, caller references, Kotlin metadata and Mixin member-selector descriptors use private packages and library IDs. JNI Skia/Skiko names remain intact. The private UI bundle requires its matching Skiko version.
+- A real private CanvasLayersComposeScene was created, given content, rendered twice through native raster Skia, and closed with foreign Compose UI 1.13.0-alpha02 first on the classpath. This exercises the factory involved in the reported NoSuchMethodError.
+- Fabric Loader 0.19.5's real dependency solver was exercised with the finished distribution plus foreign Compose bundle 1.0.6 / Skiko 0.154.0 candidates from the affected client's log. It retains the foreign Compose bundle and selects the matching bundled Skiko 0.999.5 Java runtime and Windows native renderer for ReConfig. This is a dependency-resolution fixture, not a launch of the entire reported modpack.
+- Projectile filtering includes independent eggs and snowballs, all-off and hide-zero behavior. Potion effects preserve the existing `effect_status` HUD ID/position, use native sprites and expiry timers, and remain available for positioning while empty in Edit HUD. Hide Scoreboard cancels the vanilla local sidebar render without modifying server objectives or teams.
+- HUD refresh intervals now use nanoseconds correctly; expensive disabled-HUD sampling and repeated linear module/setting lookups were removed. FPS Boost does not increase already-lower distances. No FPS benchmark gain is claimed.
+
+**Runtime scope:** Native offscreen rendering was checked on this Windows computer. The full 242-mod instance, Vulkan gameplay, visual HUD placement, live potion timing and scoreboard keybind interaction still require in-game testing. No backend code, migration or deployment was changed for 3.3.1. Replace the old ReConfig JAR and restart Minecraft.
+
+## Historical 3.3.0 verification
+
+The sections below describe the earlier release and its separate backend/UI checks.
+
 # Verification — 22 October 2026
 
 - `gradlew.bat buildAndCollect check`: passed, including `MixinAuditTest` and the Minecraft keybind transition tests. A clean rebuild is performed before packaging.

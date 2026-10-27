@@ -98,34 +98,62 @@ class InventoryGridHud : VisualModuleHud("inventory_hud", "Inventory", 190f, 40f
     }
 }
 
-/** Effects use one card per tick-sampled effect, with a consistent drawn status icon. */
-class EffectsHud : VisualModuleHud("effect_status", "Active Effects", 8f, 100f) {
-    private data class EffectLine(val name: String, val duration: String, val beneficial: Boolean)
+/** Native status icons and durations inside the existing persisted editor transform. */
+class EffectsHud : VisualModuleHud("effect_status", "Potion Effects", 8f, 100f) {
+    private data class EffectLine(val name: String, val duration: String, val beneficial: Boolean,
+        val icon: net.minecraft.resources.Identifier, val expiresSoon: Boolean = false)
     private var effects: List<EffectLine> = emptyList()
-    override fun updateFrequency() = 100L
+    private fun option(id: String) = ModuleAccess.choice("effect_status", id, "true").toBoolean()
+    override fun updateFrequency() = 100_000_000L
+    override fun isAvailable() = super.isAvailable() && HudOptions.contentVisible(
+        HudManager.isEditing, option("hide_empty"), Minecraft.getInstance().player?.activeEffects?.isNotEmpty() == true)
     override fun update(): Boolean {
-        effects = Minecraft.getInstance().player?.activeEffects?.map { effect ->
-            val seconds = effect.duration.coerceAtLeast(0) / 20
-            EffectLine("${effect.effect.value().displayName.string} ${effect.amplifier + 1}",
-                if (effect.isInfiniteDuration) "∞" else "%d:%02d".format(java.util.Locale.ROOT, seconds / 60, seconds % 60),
-                effect.effect.value().isBeneficial)
-        } ?: emptyList()
+        val names = option("show_names"); val levels = option("show_levels"); val timers = option("show_duration")
+        effects = Minecraft.getInstance().player?.activeEffects
+            ?.sortedWith(compareBy<net.minecraft.world.effect.MobEffectInstance> { it.effect.value().isBeneficial }
+                .thenBy { if (it.isInfiniteDuration) Int.MAX_VALUE else it.duration })
+            ?.mapNotNull { effect ->
+                val key = net.minecraft.core.registries.BuiltInRegistries.MOB_EFFECT.getKey(effect.effect.value())
+                    ?: return@mapNotNull null
+                val icon = net.minecraft.resources.Identifier.fromNamespaceAndPath(key.namespace, "mob_effect/" + key.path)
+                val name = buildList {
+                    if (names) add(effect.effect.value().displayName.string)
+                    if (levels && effect.amplifier > 0) add(net.minecraft.network.chat.Component
+                        .translatable("enchantment.level.${effect.amplifier + 1}").string)
+                }.joinToString(" ")
+                EffectLine(name, if (timers) HudOptions.duration(effect.duration, effect.isInfiniteDuration) else "",
+                    effect.effect.value().isBeneficial, icon, !effect.isInfiniteDuration && effect.duration <= 200)
+            } ?: emptyList()
         return true
     }
-    override val width get() = ((effects.maxOfOrNull { Minecraft.getInstance().font.width(it.name) } ?: 85) + 38).coerceAtLeast(124).toFloat()
-    override val height get() = (effects.size.coerceAtLeast(1) * 29).toFloat()
+    private fun rows(): List<EffectLine> = if (effects.isEmpty() && HudManager.isEditing) listOf(
+        EffectLine(listOfNotNull(if (option("show_names")) "Speed" else null,
+            if (option("show_levels")) "II" else null).joinToString(" "),
+            if (option("show_duration")) "1:24" else "", true,
+            net.minecraft.resources.Identifier.withDefaultNamespace("mob_effect/speed")),
+        EffectLine(if (option("show_names")) "Fire Resistance" else "",
+            if (option("show_duration")) "0:45" else "", true,
+            net.minecraft.resources.Identifier.withDefaultNamespace("mob_effect/fire_resistance"))) else effects
+    override val width get() = ((rows().maxOfOrNull {
+        maxOf(Minecraft.getInstance().font.width(it.name), Minecraft.getInstance().font.width(it.duration))
+    } ?: 85) + 39).coerceAtLeast(118).toFloat()
+    override val height get() = (rows().size.coerceAtLeast(1) * 29).toFloat()
     override fun render(mcCtx: GuiContext) {
         if (hiddenByReConfig() || !HudManager.isEditing && !isAvailable()) return
-        if (effects.isEmpty()) { panel(mcCtx); label(mcCtx, "No active effects", 8, 10, 0xFFABBED3.toInt()); return }
-        effects.forEachIndexed { index, effect ->
+        val rows = rows()
+        if (rows.isEmpty()) { panel(mcCtx); label(mcCtx, "No active effects", 8, 10, 0xFFABBED3.toInt()); return }
+        rows.forEachIndexed { index, effect ->
             val y = index * 29
             if (showBackground()) roundedPanel(mcCtx, 0, y, width.toInt(), y + 26, 7)
-            val color = if (effect.beneficial) 0xFF76E4AD.toInt() else 0xFFFF818B.toInt()
-            // Plus/minus icons distinguish status without depending on OS glyphs.
-            mcCtx.fill(7, y + 12, 17, y + 14, color)
-            if (effect.beneficial) mcCtx.fill(11, y + 8, 13, y + 18, color)
-            label(mcCtx, effect.name, 24, y + 4)
-            label(mcCtx, effect.duration, 24, y + 15, color)
+            mcCtx.blitSprite(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, effect.icon, 5, y + 4, 18, 18)
+            val color = when {
+                effect.expiresSoon -> 0xFFFFBD76.toInt()
+                !effect.beneficial -> 0xFFFF818B.toInt()
+                else -> 0xFFABBED3.toInt()
+            }
+            if (effect.name.isNotEmpty()) label(mcCtx, effect.name, 29, y + 4)
+            if (effect.duration.isNotEmpty()) label(mcCtx, effect.duration, 29,
+                y + if (effect.name.isEmpty()) 9 else 15, color)
         }
     }
 }
@@ -163,7 +191,7 @@ class KeystrokesHud : Hud("reconfig-keystrokes", "Keystrokes", Category.INFO) {
     override fun multipleInstancesAllowed()=false
     override fun defaultPosition()=370f to 40f
     override fun minimumSize()=76f to 100f
-    override fun updateFrequency()=16L
+    override fun updateFrequency()=16_000_000L
     override fun isAvailable()=ReConfigHudVisibility.gameplayOverlayVisible()&&ModuleHuds.inWorld&&ModuleAccess.enabled("keystrokes")
     override fun update():Boolean {
         val mc=Minecraft.getInstance();val o=mc.options
@@ -200,7 +228,7 @@ class BrowserMusicHud : Hud("reconfig-browser_music_hud", "Browser Music", Categ
     override fun multipleInstancesAllowed() = false
     override fun defaultPosition() = 8f to 405f
     override fun minimumSize() = 232f to 78f
-    override fun updateFrequency() = 250L
+    override fun updateFrequency() = 250_000_000L
     override fun isAvailable() = ReConfigHudVisibility.gameplayOverlayVisible() && ModuleHuds.inWorld && ModuleAccess.enabled("browser_music_hud")
     override fun update(): Boolean {
         val media = BrowserMusicBridge.media

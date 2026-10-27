@@ -8,17 +8,17 @@ object ModuleAccess {
     @JvmStatic fun enabled(id: String): Boolean = ModuleCatalog.byId(id)?.enabled == true
     @JvmStatic fun number(id: String, settingId: String, fallback: Float): Float {
         val module = ModuleCatalog.byId(id) ?: return fallback
-        val setting = module.settings.firstOrNull { it.id == settingId } ?: return fallback
+        val setting = module.setting(settingId) ?: return fallback
         return module.value(setting).toFloatOrNull() ?: fallback
     }
     @JvmStatic fun text(id: String, settingId: String, fallback: String): String {
         val module = ModuleCatalog.byId(id) ?: return fallback
-        val setting = module.settings.firstOrNull { it.id == settingId } ?: return fallback
+        val setting = module.setting(settingId) ?: return fallback
         return module.value(setting)
     }
     @JvmStatic fun choice(id: String, settingId: String, fallback: String): String {
         val module = ModuleCatalog.byId(id) ?: return fallback
-        val setting = module.settings.firstOrNull { it.id == settingId } ?: return fallback
+        val setting = module.setting(settingId) ?: return fallback
         return module.value(setting)
     }
 }

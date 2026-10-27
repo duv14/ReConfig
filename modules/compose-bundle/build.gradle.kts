@@ -58,7 +58,11 @@ private fun createProcessTask(): TaskProvider<NestableJarGenerationTask> {
 val processTask = createProcessTask()
 
 private fun getOutputJars(): FileCollection {
-    return project.fileTree(processTask.flatMap(Transformer { it.outputDirectory })).matching { include("*.jar") }
+    // NestableJarGenerationTask does not remove files left by older resolutions.
+    // Only package this build's resolved artifacts, never every stale output JAR.
+    return project.fileTree(processTask.flatMap(Transformer { it.outputDirectory })).matching {
+        include { it.file.name in shade.files.map(File::getName).toSet() }
+    }
 }
 
 tasks.jar {

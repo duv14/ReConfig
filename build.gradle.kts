@@ -33,30 +33,20 @@ unsupportedBinaryNodes.forEach { path ->
 val bootstrapNodes = subprojects.filter { it.path == ":bootstrap:1.21.11-fabric" }
 
 // Sync rather than Copy because node build/libs keeps jars of previously built versions
+val isolatedRelease = tasks.register<dev.duv14.build.IsolateComposeRuntime>("isolateReleaseRuntime") {
+    group = "build"
+    description = "Privately packages Compose so other mods cannot replace ReConfig's UI runtime."
+    dependsOn(bootstrapNodes.map { "${it.path}:assemble" })
+    inputJar.set(project(":bootstrap:1.21.11-fabric").layout.buildDirectory.file("libs/ReConfig-1.21.11-fabric-${rootProject.version}.jar"))
+    outputJar.set(layout.buildDirectory.file("isolated/ReConfig-${rootProject.version}.jar"))
+}
+
 tasks.register<Sync>("buildAndCollect") {
     group = "build"
     description = "Builds and collects the standalone ReConfig jar into build/libs."
-
-    dependsOn(bootstrapNodes.map { "${it.path}:assemble" })
-
-    // loom keeps the unmapped jar in build/devlibs so build/libs holds only the shippable one
-    // version filter skips stale jars from earlier project versions
-    from(bootstrapNodes.map { it.layout.buildDirectory.dir("libs") }) {
-        include("*-${rootProject.version}.jar")
-        rename { "ReConfig-${rootProject.version}.jar" }
-    }
+    dependsOn(isolatedRelease)
+    from(isolatedRelease.flatMap { it.outputJar })
     into(layout.buildDirectory.dir("libs"))
-
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-
-    doFirst {
-        if (bootstrapNodes.isEmpty()) {
-            throw GradleException("No bootstrap nodes were registered — check the stonecutter tree in settings.gradle.kts.")
-        }
-    }
-
-    doLast {
-        val target = destinationDir
-        logger.lifecycle("Collected ${target.listFiles { f -> f.extension == "jar" }?.size ?: 0} jars into $target")
-    }
+    doLast { logger.lifecycle("Collected isolated ReConfig release into $destinationDir") }
 }
