@@ -203,6 +203,7 @@ class OneConfigUIScreen @JvmOverloads constructor(
     }
 
     override fun removed() {
+        KeyCapture.cancel()
         // a screen opened over this one removes it and hands it back on close with the scene rebuilt
         // in between so the page has to be carried across by hand
         ShellState.lastRoute?.takeIf { it !== HudEditorRoute }?.let { route = it }
@@ -211,6 +212,7 @@ class OneConfigUIScreen @JvmOverloads constructor(
         SkiaCtx.suppressInGameHudRender = false
         HudManager.overrideShowInScreens = false
         HudManager.isConfigUiOpen = false
+        SkiaCtx.clearComposeFrame()
         org.polyfrost.oneconfig.internal.ui.SkiaOffscreenTarget.destroyAll()
         UiSounds.releaseAmbience()
         // writing every registered tree hitches and Minecraft only re-grabs the cursor once this returns
@@ -253,6 +255,7 @@ class OneConfigUIScreen @JvmOverloads constructor(
 
     /** Mouse side buttons navigate the page history like a browser */
     override fun handleMouseClicked(button: Int): Boolean {
+        if (KeyCapture.consumeMouse(button, 1) || KeybindRecordingBus.consumeMouse(button, 1)) return true
         if (!closeRequested && LocalNavController.isReady) {
             when (button) {
                 GLFW.GLFW_MOUSE_BUTTON_4 -> {

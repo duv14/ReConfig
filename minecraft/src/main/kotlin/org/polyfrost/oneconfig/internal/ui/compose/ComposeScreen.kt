@@ -466,7 +466,8 @@ abstract class ComposeScreen(
     //? } else {
     /*override fun mouseReleased(x: Double, y: Double, button: Int): Boolean {
     *///? }
-        if (!consumedButtons.remove(button)) sendMouseButtonEvent(PointerEventType.Release, button)
+        if (consumedButtons.remove(button)) return true
+        sendMouseButtonEvent(PointerEventType.Release, button)
 
         //? if >= 1.21.10 {
         return super.mouseReleased(event)
@@ -563,7 +564,8 @@ abstract class ComposeScreen(
     //?} else {
     /*override fun keyReleased(key: Int, scanCode: Int, modifiers: Int): Boolean {
     *///?}
-        val handled = if (consumedKeys.remove(key)) false else sendKeyReleasedEvent(key, modifiers)
+        if (consumedKeys.remove(key)) return true
+        val handled = sendKeyReleasedEvent(key, modifiers)
         //? if >= 1.21.10 {
         return handled || super.keyReleased(event)
         //?} else {

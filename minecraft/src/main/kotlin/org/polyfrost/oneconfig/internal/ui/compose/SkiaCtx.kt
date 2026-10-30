@@ -50,8 +50,8 @@ object SkiaCtx {
     fun unavailableReason(): String? {
         if (isReady) return null
         return if (isVulkanModInstalled) {
-            "ReConfig's UI can't render while VulkanMod is installed, because VulkanMod replaces " +
-                "Minecraft's OpenGL renderer. Remove VulkanMod to use the ReConfig UI."
+            "ReConfig's Vulkan UI renderer could not initialize. The unsafe OpenGL fallback was blocked. " +
+                "Check your logs for the Vulkan integration error."
         } else {
             "ReConfig's UI failed to initialize and can't be opened. Please check your logs and report this."
         }

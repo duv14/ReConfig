@@ -12,6 +12,10 @@ Wait for `BUILD SUCCESSFUL`. Install the collected standalone mod at `build\libs
 
 Use Minecraft 1.21.11, Java 21, Fabric Loader, Fabric API >=0.141.5+1.21.11 and Fabric Language Kotlin >=1.13.8+kotlin.2.3.0. Put the ReConfig JAR in the instance's `mods` folder, replacing the previous ReConfig JAR, then restart Minecraft. A separate OneConfig installation is not required. The Compose/Skiko native runtime libraries are retained because this UI renderer requires them.
 
+## 30 October hotfix
+
+The version stays 3.3.1. While recording a binding, press a keyboard key or mouse button. Mouse 4/5 work for module activation and regular config bindings. Escape cancels module capture; Backspace/Delete clears it. Particle Changer caches its settings outside per-particle rendering. The supplied NVIDIA native crash remains unproven as fixed; see VERIFICATION.md.
+
 ## New controls
 
 - Modules -> Projectile Counter: keep Pearls and Wind charges enabled and disable the other types for a two-type counter.

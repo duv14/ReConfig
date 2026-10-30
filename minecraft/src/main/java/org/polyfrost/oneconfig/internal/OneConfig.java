@@ -337,7 +337,7 @@ public class OneConfig
         ModInfo self = Platform.compatibility()
                 .getMods()
                 .stream()
-                .filter(it -> "oneconfig".equals(it.getId()))
+                .filter(it -> "reconfig".equals(it.getId()))
                 .findFirst()
                 .orElse(null);
         String v = self == null ? "LOCAL" : self.getVersion();

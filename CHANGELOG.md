@@ -2,6 +2,18 @@
 
 ## 3.3.1 — UI compatibility and HUD controls
 
+### 30 October 2026 hotfix — same version
+
+- Particle Changer now caches settings outside the per-particle render path, reuses unchanged snapshots and skips drawing particles at zero opacity. Size and opacity still respect the selected settings.
+- Added mouse-button bindings for gameplay modules, including Zoom on Mouse 4/5. Mouse bindings persist and work with hold/toggle activation.
+- Recording captures keyboard and mouse input before page navigation, gameplay actions and vanilla fullscreen/debug/screenshot shortcuts. Captured repeats/releases remain consumed after the binding is saved; Escape cancels module capture and Backspace/Delete clears it.
+- Added mouse recording to regular config keybind controls and prevented scroll actions while recording.
+- Rejected non-finite numeric settings before they reach rendering and blocked unsafe OpenGL fallback/profiling calls when VulkanMod cannot provide a compatible UI renderer.
+- Cleared pending Compose work before offscreen-target cleanup and corrected startup version lookup to identify ReConfig correctly.
+- The supplied fatal log ends in NVIDIA's native OpenGL driver. Its cause cannot be established from that log alone; this hotfix does not claim to repair all GPU-driver or third-party-mod crashes.
+
+### Original 3.3.1 update
+
 - Isolated ReConfig's Compose/AndroidX runtime and its nested library IDs to fix UI startup when a different Compose Multiplatform version is installed. Kept JNI packages intact and required the matching native renderer ABI.
 - Stopped bundling stale dependency JARs from previous builds.
 - Added individual projectile-counter switches for arrows, ender pearls, wind charges, snowballs and eggs, with optional zero-count hiding.

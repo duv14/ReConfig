@@ -9,7 +9,7 @@ object ModuleAccess {
     @JvmStatic fun number(id: String, settingId: String, fallback: Float): Float {
         val module = ModuleCatalog.byId(id) ?: return fallback
         val setting = module.setting(settingId) ?: return fallback
-        return module.value(setting).toFloatOrNull() ?: fallback
+        return module.value(setting).toFloatOrNull()?.takeIf { it.isFinite() } ?: fallback
     }
     @JvmStatic fun text(id: String, settingId: String, fallback: String): String {
         val module = ModuleCatalog.byId(id) ?: return fallback

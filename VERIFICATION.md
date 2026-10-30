@@ -1,3 +1,16 @@
+# ReConfig 3.3.1 hotfix — 30 October 2026
+
+- Version remains 3.3.1. The JAR custom metadata identifies build 2026-10-30 / particle-input-hotfix. Original 27 October artifacts are retained locally under outputs/archive/ReConfig-3.3.1-original-2026-10-27.
+- Gradle buildAndCollect/check passed, including API and Minecraft mixin checks. The source regression suite passes 71 tests. Tests are engineering evidence, not Discord announcement copy.
+- Packaged code integration runs with in-memory Java Preferences, never player settings: actual KeyCapture saves Mouse 4 to Zoom activation, preserves mouse codes, displays Mouse 4, drains release, handles Escape/Backspace/F11, and records generic Mouse 5 without navigation. No real physical mouse/gameplay session was run.
+- Particle policy checks cover disabled/no-op rendering, size/alpha multiplication, zero opacity, invalid numeric values, bounds and snapshot identity reuse. Render hooks no longer reference ModuleAccess/Preferences. No FPS benchmark gain is claimed.
+- Native offscreen Compose rendering with foreign Compose 1.13, Fabric dependency resolution and recursively verified private-runtime packaging passed again for the hotfix JAR.
+- Renderer changes fail closed when a VulkanMod bridge cannot initialize, avoid OpenGL profiler/warmup calls without the matching backend, and clear pending Compose work before offscreen cleanup.
+- Independent static review also inspected actual Minecraft 1.21.11 input bytecode and found no important issues. Full client/VulkanMod behavior remains unverified.
+- The supplied crash log reports EXCEPTION_ACCESS_VIOLATION in NVIDIA nvoglv64.dll. It lacks the native crash report/stack and does not establish which mod or driver call caused it. This hotfix cannot be claimed to fix that incident or all GPU/third-party crashes. No driver, user modpack or GPU settings were changed.
+
+## Previous verification
+
 # ReConfig 3.3.1 verification — 27 October 2026
 
 - `gradlew.bat buildAndCollect check` passed in 1m 11s (120 tasks). This includes the Minecraft mixin audit and API checks. The final JUnit reports contain 205 tests, zero failures/errors/skips.

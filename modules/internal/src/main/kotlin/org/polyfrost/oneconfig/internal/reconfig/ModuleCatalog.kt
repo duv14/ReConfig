@@ -24,10 +24,10 @@ class ClientModule(val id:String,val name:String,val description:String,val icon
     fun setKey(id:String,key:Int)=settings.firstOrNull{it.kind==SettingKind.KEY&&it.id==id}?.let{set(it,key.toString())}
     fun set(setting:ModuleSetting,value:String){
         val normalized=when(setting.kind){
-            SettingKind.NUMBER -> value.toFloatOrNull()?.coerceIn(setting.min,setting.max)?.let{
+            SettingKind.NUMBER -> value.toFloatOrNull()?.takeIf { it.isFinite() }?.coerceIn(setting.min,setting.max)?.let{
                 if(it % 1f == 0f) it.toInt().toString() else it.toString()
             } ?: this.value(setting)
-            SettingKind.KEY -> value.toIntOrNull()?.coerceIn(0,512)?.toString() ?: this.value(setting)
+            SettingKind.KEY -> value.toIntOrNull()?.let(BindingInput::normalize)?.toString() ?: this.value(setting)
             SettingKind.TOGGLE -> value.toBooleanStrictOrNull()?.toString() ?: this.value(setting)
             SettingKind.CHOICE -> value.takeIf(setting.choices::contains) ?: this.value(setting)
             else -> value.take(256)

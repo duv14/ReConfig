@@ -2,6 +2,10 @@
 
 Standalone Fabric client mod for Minecraft 1.21.11 by **duv14**, adapted from OneConfig by Polyfrost and contributors. No separate OneConfig mod is required. Install compatible Fabric API and Fabric Language Kotlin.
 
+## 30 October 2026 hotfix
+
+Re-download 3.3.1 to get cached Particle Changer rendering, mouse-button bindings (including Zoom on Mouse 4/5), exclusive keybind recording and renderer safety guards. Replace the old JAR and restart Minecraft. The version number stays 3.3.1. See CHANGELOG.md and VERIFICATION.md for scope.
+
 ## UI compatibility and HUD update
 
 - Private Compose packages prevent a separate Compose Multiplatform mod from replacing ReConfig's UI classes. The matching Skiko renderer remains bundled with its required native libraries.

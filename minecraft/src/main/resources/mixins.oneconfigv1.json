@@ -11,6 +11,8 @@
     },
     "verbose": true,
     "client": [
+        "reconfig.Mixin_ReConfigKeyboardCapture",
+        "reconfig.Mixin_ReConfigMouseCapture",
         "Mixin_PackRepository",
         "events.Mixin_ChatReceiveEvent",
         "events.Mixin_ChatSendEvent",

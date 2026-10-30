@@ -132,7 +132,7 @@ private object ModuleSearchSelection { var pending by mutableStateOf<ClientModul
             SettingKind.TOGGLE->SwitchControl(value.toBoolean()){value=it.toString();module.set(setting,value)}
             SettingKind.NUMBER->{val n=value.toFloatOrNull()?.coerceIn(setting.min,setting.max)?:setting.min;Row(Modifier.width(310.dp),horizontalArrangement=Arrangement.spacedBy(12.dp),verticalAlignment=Alignment.CenterVertically){SliderControl(n,{v->value=v.toString();module.set(setting,value)},setting.min,setting.max,if(setting.max-setting.min<=5f).05f else if(setting.max-setting.min>200)10f else 1f,Modifier.weight(1f));ValuePill(if(n%1f==0f)n.toInt().toString() else "%.1f".format(n))}}
             SettingKind.CHOICE->GlassButton(value,"down"){val i=setting.choices.indexOf(value).coerceAtLeast(0);value=setting.choices[(i+1)%setting.choices.size];module.set(setting,value)}
-            SettingKind.KEY->{val listening=KeyCapture.moduleId==module.id&&KeyCapture.settingId==setting.id;GlassButton(if(listening)"Press a key…" else KeyCapture.label(module.key(setting.id)),"keyboard"){if(listening)KeyCapture.cancel() else KeyCapture.begin(module.id,setting.id)}}
+            SettingKind.KEY->{val listening=KeyCapture.moduleId==module.id&&KeyCapture.settingId==setting.id;GlassButton(if(listening)"Press a key or mouse button…" else KeyCapture.label(module.key(setting.id)),"keyboard"){if(listening)KeyCapture.cancel() else KeyCapture.begin(module.id,setting.id)}}
             SettingKind.COLOR->ColorControl(value){value=it;module.set(setting,it)}
             SettingKind.TEXT->StyledInput(value){value=it;module.set(setting,it)}
             SettingKind.INFO->Text(setting.default,color=t.textColorSecondary,fontSize=12.sp,modifier=Modifier.widthIn(max=330.dp))

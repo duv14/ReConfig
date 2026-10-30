@@ -48,6 +48,10 @@ object ReConfigModuleRuntime {
     }
 
     private fun tick(mc: Minecraft) {
+        org.polyfrost.oneconfig.internal.reconfig.modules.ParticleRenderSettings.update(
+            PrivacyConsent.accepted && ModuleAccess.enabled("particles"),
+            ModuleAccess.number("particles", "particle_size", 100f),
+            ModuleAccess.number("particles", "particle_opacity", 100f))
         if (!PrivacyConsent.accepted) {
             FreeLookController.update(mc, false)
             ZoomController.activate(false)
@@ -129,9 +133,13 @@ object ReConfigModuleRuntime {
         val wasDown = previouslyDown.put(token, down) == true
         return !blocked && down && !wasDown
     }
-    private fun isDown(key: Int, window: Long) = key in GLFW.GLFW_KEY_SPACE..GLFW.GLFW_KEY_LAST && GLFW.glfwGetKey(window, key) == GLFW.GLFW_PRESS
+    private fun isDown(key: Int, window: Long): Boolean = when {
+        BindingInput.isMouse(key) -> GLFW.glfwGetMouseButton(window, BindingInput.mouseButton(key)) == GLFW.GLFW_PRESS
+        key in GLFW.GLFW_KEY_SPACE..GLFW.GLFW_KEY_LAST -> GLFW.glfwGetKey(window, key) == GLFW.GLFW_PRESS
+        else -> false
+    }
     private fun physicalKeyDown(saved: String, window: Long): Boolean {
-        val key = runCatching { InputConstants.getKey(saved).value }.getOrDefault(-1)
-        return isDown(key, window)
+        val key = runCatching { InputConstants.getKey(saved) }.getOrNull() ?: return false
+        return isDown(if (key.type == InputConstants.Type.MOUSE) BindingInput.mouseCode(key.value) else key.value, window)
     }
 }

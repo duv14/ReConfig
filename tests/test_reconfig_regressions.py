@@ -74,7 +74,7 @@ class ReConfigRegressionTests(unittest.TestCase):
     def test_particle_opacity_uses_blended_layer(self):
         source = (ROOT / "minecraft/src/main/java/org/polyfrost/oneconfig/internal/mixin/reconfig/Mixin_ReConfigParticles.java").read_text()
         self.assertIn("SingleQuadParticle.Layer.TRANSLUCENT", source)
-        self.assertIn("EffectMath.alpha", source)
+        self.assertIn("ParticleRenderSettings.state().tint(color)", source)
 
     def test_distributable_jar_uses_reconfig_name(self):
         bootstrap_build = (ROOT / "buildSrc/src/main/kotlin/oneconfig-bootstrap.gradle.kts").read_text()

@@ -9,6 +9,9 @@ import androidx.compose.runtime.setValue
 
 /** Shared keyboard-listening state used by the controls-style keybind button. */
 object KeyCapture {
+    private val gate = BindingInput.CaptureGate()
+    @JvmStatic val isRecording get() = moduleId != null
+    @JvmStatic val blocksText get() = isRecording || gate.blocksText()
     private const val GLFW_KEY_ESCAPE = 256
     private const val GLFW_KEY_BACKSPACE = 259
     private const val GLFW_KEY_DELETE = 261
@@ -18,13 +21,18 @@ object KeyCapture {
         private set
 
     fun begin(moduleId: String, settingId: String) { this.moduleId = moduleId; this.settingId = settingId }
-    fun cancel() { moduleId = null; settingId = null }
+    @JvmStatic fun cancel() { moduleId = null; settingId = null }
+
+    @JvmStatic fun consumeMouse(button: Int, state: Int): Boolean = consume(BindingInput.mouseCode(button), state)
 
     /** Returns true when the event was consumed by key capture. */
-    fun consume(key: Int, state: Int): Boolean {
-        val id = moduleId ?: return false
-        val settingId = settingId ?: return false
+    @JvmStatic fun consume(key: Int, state: Int): Boolean {
+        val id = moduleId
+        if (!gate.consume(key, state, id != null)) return false
+        if (id == null) return true
+        val settingId = settingId ?: return true
         if (state != 1) return true
+        if (key == 0 || BindingInput.normalize(key) != key) return true
         when (key) {
             GLFW_KEY_ESCAPE -> cancel()
             GLFW_KEY_BACKSPACE, GLFW_KEY_DELETE -> { ModuleCatalog.byId(id)?.setKey(settingId,0); cancel() }
@@ -34,6 +42,7 @@ object KeyCapture {
     }
 
     fun label(key: Int): String = when (key) {
+        in -100..-93 -> "Mouse ${BindingInput.mouseButton(key) + 1}"
         0 -> "Unbound"
         32 -> "Space"
         256 -> "Escape"

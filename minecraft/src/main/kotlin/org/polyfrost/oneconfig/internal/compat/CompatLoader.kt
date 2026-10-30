@@ -142,7 +142,7 @@ object CompatLoader {
 
     private fun runNextScreenWarmup() {
         val warmup = screenWarmups.poll() ?: return
-        if (!SkiaCtx.isVulkanMode) runCatching { resyncTextureBindCache() }
+        if (SkiaCtx.isReady && !SkiaCtx.isVulkanMode) runCatching { resyncTextureBindCache() }
         runCatching { warmup() }.onFailure { LOGGER.warn("Config screen warmup failed", it) }
     }
 

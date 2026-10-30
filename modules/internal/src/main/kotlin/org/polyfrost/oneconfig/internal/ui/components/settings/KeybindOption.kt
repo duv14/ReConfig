@@ -182,7 +182,15 @@ fun KeybindOption(data: KeybindOptionData) {
                 recording = false
             }
             KeybindRecordingBus.setEscapeHandler(handler)
-            onDispose { KeybindRecordingBus.clearEscapeHandler(handler) }
+            val mouseHandler: (Int) -> Unit = { button ->
+                applyKeybind(null, intArrayOf(button))
+                recording = false
+            }
+            KeybindRecordingBus.setMouseHandler(mouseHandler)
+            onDispose {
+                KeybindRecordingBus.clearEscapeHandler(handler)
+                KeybindRecordingBus.clearMouseHandler(mouseHandler)
+            }
         } else {
             onDispose { }
         }
@@ -253,7 +261,7 @@ fun KeybindOption(data: KeybindOptionData) {
         )
         Text(
             when {
-                recording && recordedKeys.isEmpty() -> "Press keys..."
+                recording && recordedKeys.isEmpty() -> "Press a key or mouse button…"
                 recording -> recordedKeys.joinToString(" + ") { keyCodeToName(it) }
                 else -> displayName
             },

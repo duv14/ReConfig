@@ -44,6 +44,7 @@ object GpuProfiler {
     private var lastReportAt = 0L
 
     private fun resolveMode(): Mode {
+        if (!SkiaCtx.isReady || SkiaCtx.isVulkanMode || SkiaCtx.isVulkanModInstalled) return Mode.DISABLED
         mode?.let { return it }
         val resolved = when (modeOverride) {
             "finish" -> Mode.FINISH.also { LOG.info("GpuProfiler: mode forced to glFinish") }

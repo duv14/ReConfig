@@ -98,6 +98,11 @@ interface VulkanService {
                     LOG.warn("VK service {} failed to initialize", className, e)
                 }
             }
+            // A failed VulkanMod bridge does not make Minecraft an OpenGL game.
+            // Calling native GL here can enter the driver without a usable GL context.
+            check(!org.polyfrost.oneconfig.internal.ui.compose.SkiaCtx.isVulkanModInstalled) {
+                "VulkanMod is installed but no compatible Vulkan UI service initialized; refusing unsafe OpenGL fallback"
+            }
             return GLVulkanService
         }
     }

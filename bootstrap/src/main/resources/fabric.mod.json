@@ -19,6 +19,9 @@
   ],
   "license": "GPL-3.0-only",
   "environment": "client",
+  "custom": {
+    "reconfig": { "build": "2026-10-30", "revision": "particle-input-hotfix" }
+  },
   "depends": {
     "fabricloader": ">=0.12.0",
     "fabric-api": ">=0.141.5+1.21.11",
